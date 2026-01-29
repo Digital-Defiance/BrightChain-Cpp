@@ -1,0 +1,28 @@
+find_package(GTest REQUIRED)
+
+add_executable(brightchain_tests
+    block_size_test.cpp
+    checksum_test.cpp
+    block_metadata_test.cpp
+    disk_block_store_test.cpp
+    aes_gcm_test.cpp
+    ec_key_pair_test.cpp
+    ecies_test.cpp
+    ecies_multiple_test.cpp
+    ecies_cross_compat_test.cpp
+    ecies_multirecipient_bidir_test.cpp
+    sha3_cross_compat_test.cpp
+    shamir_test.cpp
+    shamir_cross_compat_test.cpp
+    edge_case_cross_compat_test.cpp
+)
+
+target_link_libraries(brightchain_tests
+    PRIVATE
+        brightchain
+        GTest::gtest
+        GTest::gtest_main
+)
+
+include(GoogleTest)
+gtest_discover_tests(brightchain_tests)

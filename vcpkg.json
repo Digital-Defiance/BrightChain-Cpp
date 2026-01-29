@@ -1,0 +1,13 @@
+{
+  "name": "brightchain-cpp",
+  "version": "1.0.0",
+  "description": "C++ implementation of BrightChain block storage and quorum services",
+  "dependencies": [
+    "openssl",
+    "nlohmann-json",
+    {
+      "name": "gtest",
+      "features": ["gmock"]
+    }
+  ]
+}
