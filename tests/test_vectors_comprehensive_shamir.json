@@ -1,0 +1,904 @@
+{
+  "shamir": [
+    {
+      "bits": 8,
+      "secret": "deadbeef",
+      "shares": [
+        "8014575c7df76b9eda3d68a061790b9fe76",
+        "802435eba78c73625fdd45e5590e6fc2bb3",
+        "803062b7da7b18fc85e02d45386a8e86b2a",
+        "8048556cdbb3f15e5453cfdd3f004f6dd86",
+        "805c0230a6449ac08e6ea77d5e64ae29d1f"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "8-bit Shamir (32 bits), 5/3 threshold"
+    },
+    {
+      "bits": 8,
+      "secret": "deadbeef",
+      "shares": [
+        "801c48d6664b6d66b2887d8cbde4eda8b5b",
+        "8026ad408cc97d83f16e2beeeda55c52476",
+        "803f6c5a3e59b92a94f28c3c20e21478fbb",
+        "80420bc50ede314e516afe033291791deb4",
+        "805295ea23aeeadba059bc190cce5e2880b",
+        "806b0fc7e73cd5861af1f1fb6aaef02c0c2",
+        "807e18241e97a7dc3cd669bf244f9840804",
+        "8081c53c58d9c8afae20728bb758f63ee48",
+        "809b635da362eb792ff5f9d766e3df70829",
+        "80a50d819b0ba0d7831140d3263332b4b89"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "8-bit Shamir (32 bits), 10/5 threshold"
+    },
+    {
+      "bits": 8,
+      "secret": "deadbeef",
+      "shares": [
+        "801de1553417b056e99dd3297deab44660a",
+        "802a12aa682f60adc2fa76433a234621338",
+        "8037f3ff5c38d0fb2b67a56a47d418bcbdd"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "8-bit Shamir (32 bits), 3/2 threshold"
+    },
+    {
+      "bits": 8,
+      "secret": "0123456789abcdef",
+      "shares": [
+        "8015762932b4dcc23f7c1dd22e7c9a4ce19",
+        "802996ae1b2ddc3b87705869e527df84fdb",
+        "803ce087299900f9b81c578f9d23df74c2d",
+        "804f35690cea69eb2cb5779baadb124feb4",
+        "805a43403e5eb52913d9787dd2df12bfd42"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "8-bit Shamir (64 bits), 5/3 threshold"
+    },
+    {
+      "bits": 8,
+      "secret": "0123456789abcdef",
+      "shares": [
+        "801141aac085b6b1335551a7b499b09d6b0",
+        "8028a13219578a9dbf8418e3bc6b4dcc2c3",
+        "803997953d03ffed1b30290e437477c5cd0",
+        "8049c7d15fe259029728e36830c3f485ba1",
+        "8059a5a474536736c59a8ddc1da51e6794b",
+        "8062ec98a39bdc43a5476bea61b592f08d7",
+        "8072f9e06cfb21b660047720512d683af71",
+        "808c86b601006743455f4d3de60583c39fc",
+        "80988584cc710f506fc2919aed204a6e860",
+        "80ad28de27404e9655403a06752a22be311"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "8-bit Shamir (64 bits), 10/5 threshold"
+    },
+    {
+      "bits": 8,
+      "secret": "0123456789abcdef",
+      "shares": [
+        "801fd35e69d6a43580ba9572f04c804c61c",
+        "802e76ad127d486b0154ccb91a10be8db14",
+        "8031a5f37babec5e81fe4bffbc24a47d0e7"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "8-bit Shamir (64 bits), 3/2 threshold"
+    },
+    {
+      "bits": 8,
+      "secret": "00000001",
+      "shares": [
+        "801f592238fed758f91ed14a0752cc4a482",
+        "802a6bb4127f2ce22e13bfee0924dd283fe",
+        "803532962a81fbbad70d6ea40e66116277d",
+        "80408599ede2d11c080a19e13cbceb86455",
+        "805fdcbbd51c0644f114c8ab3bfe27cc0d6"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "8-bit Shamir (32 bits), 5/3 threshold"
+    },
+    {
+      "bits": 8,
+      "secret": "00000001",
+      "shares": [
+        "801ba9d55ab0e965ac3f0507dc7ffbd96af",
+        "8026a9388e0723346ffa1e16f697c56bbcb",
+        "80369ada167e0901881995819e61793711b",
+        "804d3cdb2762ed33789628a212a6925bf4d",
+        "805d8bdf2354ffb75e318966647c995fcfa",
+        "806182ffdebc85551f7cd701630c194de50",
+        "807aafcc184354817207f855a14f55cc199",
+        "80893168c3391d9423b2caaddcc9a475a98",
+        "80909ae60af745968a8c95464a56e33d2b7",
+        "80a18beacc0bc73c4e5a9117f952479079a"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "8-bit Shamir (32 bits), 10/5 threshold"
+    },
+    {
+      "bits": 8,
+      "secret": "00000001",
+      "shares": [
+        "801a93d594444b25cdae219eb260178e5da",
+        "8024f7ab2888879b8a9d932cb4f02f0d7aa",
+        "803e647ebcccccbe4733b2b206803883271"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "8-bit Shamir (32 bits), 3/2 threshold"
+    },
+    {
+      "bits": 8,
+      "secret": "ffffffff",
+      "shares": [
+        "80165dbd7445c0b3fbc8cb97b9791a509bd",
+        "802f130590182581f159f30cf25df3be465",
+        "80394eb8e45de5320a91389b4b3b1611227",
+        "80413363d1cf195a7f77101671d68b746ae",
+        "80576edea58ad9e984bfdb81c8b06edb0ec"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "8-bit Shamir (32 bits), 5/3 threshold"
+    },
+    {
+      "bits": 8,
+      "secret": "ffffffff",
+      "shares": [
+        "8019e3c16559ee4b0b9d29337fa5ebb8bba",
+        "80228c14ee0aa18e37f5e2f2fd5fac7325f",
+        "8037c35a6d8cc2c4cd8f05e66bb38863b98",
+        "8049409bccd8614d6d41db70914002260b1",
+        "8058cbf94eb322a2429da5227b6f67807df",
+        "806a2c65162bfc2cd5b84dbf11c3a326275",
+        "80770b88729f32c20b83fdca12baf6d7899",
+        "80836f1865fd34a18175d5044027ae10dc8",
+        "80985d8b7722286c1db36a9f2ee0bc9dc13",
+        "80a5a14250034ccd172abe8a324fd29582d"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "8-bit Shamir (32 bits), 10/5 threshold"
+    },
+    {
+      "bits": 8,
+      "secret": "ffffffff",
+      "shares": [
+        "80179df14d0f623e92c15ef35484076f8c8",
+        "802f2a328bdf146cf582ac36a939cf0f191",
+        "8038b7c3c6d076526743f2c5fda2379f6a6"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "8-bit Shamir (32 bits), 3/2 threshold"
+    },
+    {
+      "bits": 8,
+      "secret": "3b8e3650793dd3aba7a90131983dcea0",
+      "shares": [
+        "801b4aafc3f0039453463ff7a14be4cfc0e2a95f13e6072d3cce29572a56dfd40df",
+        "80212c0dd982dc6907fade0a5db1bab744ee4af88c7de5d4fbb9442bb96a0d6b3ba",
+        "803a66a21a72dffd54bce1fdfcfa5e78841f5b44fa9c7124fdcd17ec80255163dc5",
+        "804a5834792ee7b55a2f6d10e40c38796c64b90e3524422bcd41f140510f333d923",
+        "8051129bbadee421096952e74547dcb6ac95a8b243c5d6dbcb35a28768406f3575c"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "8-bit Shamir (128 bits), 5/3 threshold"
+    },
+    {
+      "bits": 8,
+      "secret": "3b8e3650793dd3aba7a90131983dcea0",
+      "shares": [
+        "801cccd462ae8531fe3e7ea34549d3255e8d9ac2bd7a643a2f0d002f95db9359203",
+        "8026862e85c082f60d83c4d9cd69bdbbe825a11ed522751ecf341fb6a3acc47e370",
+        "803b017f9bd14573dfc66502e370b99e07e68c1519a71615ab9d0b7e3d12a54ae04",
+        "804ae20eddfc78510a65161021392d38f1ce2bee512a5641378527ca3648272eb37",
+        "8051a5a44752d2c9eed1f8305de21dce08bda8a192a6ba3ca454bbf603d0b20d15c",
+        "80666eb87953cef5a08ecc7da0461af69374de25f52c7425aa8d7456723a0d04e11",
+        "807c62979f4226d96841fd25b7cdfd00db5a524022580cb44842861d5fdee9965ad",
+        "8086a975649aee78e0abe22527c116512ecd1df15328784fd6cac5b6d865f5ffeb0",
+        "8090b66ca52b9d7fa4809138898007e83b41b4a155202012df6c1f6a018df4e636f",
+        "80ae5249561b64b12fba32f4b16e74b61b82ef095a15149eb231d6ec33822cfc46e"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "8-bit Shamir (128 bits), 10/5 threshold"
+    },
+    {
+      "bits": 8,
+      "secret": "3b8e3650793dd3aba7a90131983dcea0",
+      "shares": [
+        "80180f9aff56d69b1f1a7bd5c9d03e06634babbc06b1e56b328cb88e9ebf32c69a5",
+        "8021def43f7dad27fff5367b82706ddcc6b24e4c726b7eb13b07febcc984e1f9daa",
+        "8039d16ec02b7bbce0ef4dae4ba053daa5ea5d1311dd080733313ca2442250e3aaf"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "8-bit Shamir (128 bits), 3/2 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "cafebabe",
+      "shares": [
+        "A0010902e12a1ee33c01b62de530d013759a8",
+        "A0020ec7fe073095fa34267a67dca0138acdf",
+        "A00307c51f2d2e76c635905782ec6caf14fc9",
+        "A0042e17094b55277c0d7f73ba9dbece57765",
+        "A0052715e8614bc4400cc95e5fad7272c9473"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "10-bit Shamir (32 bits), 5/3 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "cafebabe",
+      "shares": [
+        "A00104bd946562df1a8ee20ce1bab0dd0cd1c",
+        "A0022891d57ca4168e95a0a28384cd67dc519",
+        "A0031266d50c1203f524500f150c70f6eb763",
+        "A0043b36b6f0131834b77092c0c84d5e42588",
+        "A0053b2436eb8ffa68b3ec5f52fe816f402f3",
+        "A006225377241c9d23c2763139ac3b95fa0f4",
+        "A0071c0b632a54b51ef9f85ddca8e64728257",
+        "A0083e39685c8410e34f6192fa6af3d51af56",
+        "A00910b2d9954dd2c7343a1c4919f12e288f9",
+        "A00a33a0e2d0dfef99f51537e68df8050ae30"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "10-bit Shamir (32 bits), 10/5 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "cafebabe",
+      "shares": [
+        "A001045d855496a82a7c10e305244109ac755",
+        "A00208ab2ea82f50d4dc20c44a48a7e364168",
+        "A0030cf6abfcb9f8fea030274f6cfa4523c83"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "10-bit Shamir (32 bits), 3/2 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "0102030405060708",
+      "shares": [
+        "A00120f77d0241f0bef181378e6daebb8c793",
+        "A0021e13f926e5c93be48464992f78248229c",
+        "A0033ee48424a43985151543377296cf6e207",
+        "A00401339edf52b04f4bfb17072d221d46aa8",
+        "A00521c4e3dd1340f1ba6a30a970ccf6aaa33"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "10-bit Shamir (64 bits), 5/3 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "0102030405060708",
+      "shares": [
+        "A001073d6f3277c00a0a9b44b44d2075c0c33",
+        "A0020a2519bd71d676b11311f9a984e87e406",
+        "A0030e9f7408601c1fe32d0d117626fa45d8b",
+        "A004192c93b867ca84dcc07cc93af80ee56f4",
+        "A0051713db834677c505f59b97a9188219260",
+        "A0060f01e61020cf6888623bb655192a2a467",
+        "A00702b9acac67784a09e29494643b914d245",
+        "A008170d4e938be7f8bd3d6a2ec6aaf6ab1e3",
+        "A0093a3497903d3ac0df81d6620aa4b9126b5",
+        "A00a15b953504c987039f1fea0cb930f57baa"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "10-bit Shamir (64 bits), 10/5 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "0102030405060708",
+      "shares": [
+        "A0011b89e1358c0958b254d596050a27d9804",
+        "A0023703e66a1a52a14491994ccad0b711919",
+        "A0032c8a075f965bf9f6d55cfaff9ac0a8615"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "10-bit Shamir (64 bits), 3/2 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "00000000",
+      "shares": [
+        "A0011d009952c356e7f5576848d2f36e95fbf",
+        "A002382ba97eeab04c4a1fefb5eb35daf7b89",
+        "A003252b302c29e6abbf4887fd39d6b462436",
+        "A004385d5d8f6c168636f3217b7d8393928e3",
+        "A005255dc4ddaf4061c3a44933af60fd0775c"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "10-bit Shamir (32 bits), 5/3 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "00000000",
+      "shares": [
+        "A0011637ac7d9b109ee49fb6e2f592d285a9c",
+        "A00236a8e12e33d0cc0d550c8e616e98c1e4f",
+        "A003280179f8110d4a088d8f3289d16be4b3d",
+        "A00418e63c6ed1bd2bae28b3eed9a86777b81",
+        "A0053db563e9d8c3d7652cba88d2e87a3656b",
+        "A0062a5f80112705f03157171181efe5bb281",
+        "A0070792eb3d97b6141b142b299792d95a385",
+        "A0083f32460b0e0c70066acfc3ebb2b620e9d",
+        "A009077eb3293b10059997568a01c3c73527a",
+        "A00a11fd6ccaa6ed6d4fd8342a0c327bceb62"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "10-bit Shamir (32 bits), 10/5 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "00000000",
+      "shares": [
+        "A0013de0f35c9e01e296207624af5d6cf2be6",
+        "A0023b51e2b13e43c52849ec09deaed8e77c5",
+        "A00306b111eda04227be699a2d71e3b415c23"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "10-bit Shamir (32 bits), 3/2 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "ffffffff",
+      "shares": [
+        "A0013d05a027d74b1c2d9db7568b5f7ef3bd0",
+        "A0020d810cec7ac82af953bcfc8c229d4e965",
+        "A0033084accbad8336d4ce0baa07621c42d4a",
+        "A00406fb6350ab68dfc7103d3f0268bb3c9c0",
+        "A0053bfec3777c23c3ea8d8a6989283a30def"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "10-bit Shamir (32 bits), 5/3 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "ffffffff",
+      "shares": [
+        "A0011b4f4b3cc7a14da04792bb0d38a2a4311",
+        "A00216b4ba1226f9f76bc6c198b360b9b8ccd",
+        "A0031ec489275e959eb1d80314dc6c67afb8c",
+        "A00428bb0ae9a8bf61d3fd8629c701741c11d",
+        "A00519c719e3e970e54677f6e0a6d731ee803",
+        "A00626a48cb37b2f0532d7c309151a153bb68",
+        "A00704e7e7b0852da5dd04e3f716e7d3859d9",
+        "A008382cc4c79ce440855d7e8763dca285dea",
+        "A00906d36307bd4ba87b5121a865f5814fc6a",
+        "A00a3dc29b6581296edce8a2cfb7fb3683943"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "10-bit Shamir (32 bits), 10/5 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "ffffffff",
+      "shares": [
+        "A00121737684a8776829c9d32bc4c375fdbca",
+        "A0020276e90152ee507792a45719a6ebfb795",
+        "A00323059f85fa99385e5b777cdd7a61f93a0"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "10-bit Shamir (32 bits), 3/2 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "1ed5cdbc135f6ce1f7324ad5265820a0a6322c53",
+      "shares": [
+        "A00106de264e0957bb1bd9207d2527208c98b8a240834ab85a105cc77d79efbb49129",
+        "A002e876167875dda35b4ad2c5640a1f819b9d3cee811d337974923fddc874003577f",
+        "A003eea830367c8a184093f2b8413cd251d8e4ab58cc48f807c99c9d22bb91d85ea05",
+        "A0044305f73952711125abe575f20fad124686de0520b869dd29b9a73a6805e90b16b",
+        "A00545dbd1775b26aa3e72c508d73960c205ff49b36deda2a394b705c51be03160c11"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "10-bit Shamir (160 bits), 5/3 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "1ed5cdbc135f6ce1f7324ad5265820a0a6322c53",
+      "shares": [
+        "A001c3273f227cfc4842789992ae975e43a329c485fd975a671ec036ec04e41241f02",
+        "A00203e4f43750b402a9809fea08779e748c011b9b33012b7de681ef5a214898c95a3",
+        "A003ac8d7f6aacf658053390708cf0e504a176ab6463a9df663a98d8467bdd733c764",
+        "A0049c436af2c9389eb1eaf7c241e0d6487d11439512597abb9a67deaac27e1367085",
+        "A0053483fcfda74638256b0860d2d2d435fabaa7cf6b13dc892cddd62805a52c76ea9",
+        "A006fb528d6da677ca3ed6e7685b58e618826ad19bf74349d121d370a30ab407359de",
+        "A0073fdcaf1d48b77e449c8ec2e26b2c0a505e744ded2932bbf8e21c539914a2b2664",
+        "A008245eeb3ea54be7ac4adeb38c1c2fcfa549e4c84f2529f90f3a16f95a6ea02f97f",
+        "A009f95cb13283449e9eb995c13ccf58ed7210c70fd122c8af5636bbad81df93d9582",
+        "A00a7f4556f977e0d1526563dbea0f97e5075143aff022cab865bb4685a81e3954f75"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "10-bit Shamir (160 bits), 10/5 threshold"
+    },
+    {
+      "bits": 10,
+      "secret": "1ed5cdbc135f6ce1f7324ad5265820a0a6322c53",
+      "shares": [
+        "A001d13e4da8c616f5f8971f8d4b56177cbc7e6a5aed9649af74cfc319878db703d20",
+        "A002a07c1b758c2dab710e3718d69e1d1514ff0a8a880f06b33a682af50125c260eb5",
+        "A003714256dd4a3b5e899928959dd9e73573405526ab863c38e3f58c6e8ca21641fc6"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "10-bit Shamir (160 bits), 3/2 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "abcdef01",
+      "shares": [
+        "C0015b440ca1d90d9065446b00c3ddb79cb1d",
+        "C002523d4644793b0504813fd08d6c7b11aae",
+        "C00309794ae5a0369561c554d04eab7053eb2",
+        "C00439fff4836f4b89c1d3d7b5360fa7202f6",
+        "C00562bbf822b64619a497bcb5f5c8ac626ea"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "12-bit Shamir (32 bits), 5/3 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "abcdef01",
+      "shares": [
+        "C00111644f712b03246f433dd3a448825c95c",
+        "C0029920cce5fdc9396385fddf83235e2d221",
+        "C0033eac6104b3914fc044777c45b8a080919",
+        "C004908c080f53d086a2d4ca56d75538d866c",
+        "C00538fafe10675a49763d4bf43fb9e6b8fc9",
+        "C006af5a987d646723a4ab9dfa443c7b5318e",
+        "C007b1c48cf235b6bebcc0ab28ce19651c54e",
+        "C008e6ad8ad5ff0b123f6c573f3286be76edf",
+        "C009c8000f524fe6d9fcdc46e82e0d33c02f6",
+        "C00aa6f8dd4fdf336d40a6589ad159ab95d86"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "12-bit Shamir (32 bits), 10/5 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "abcdef01",
+      "shares": [
+        "C0017ff9431a6567847b03289ef042636b24e",
+        "C002ffe2d534cace0dd655512db3ab13e75cc",
+        "C003801b962eafa989ad5679b343f3cc52883"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "12-bit Shamir (32 bits), 3/2 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "69fde0414f76faa666bbb2e35e0917f8683e257fe6eb20bd",
+      "shares": [
+        "C00171b808f60cecf493255083af4f2930d9787f564eb8e67463d714e1fe6201f1ca71",
+        "C00218552f24e7da4c1c5410de04dd311ae95f29d0486b00aa322f1dcc45781663dc32",
+        "C00369ed27d2eb36b88f7029a04bd3575cca81303db430b8d7460061139e65f17936fe",
+        "C004d33fbd71d60512402ab4b67974387d893040b2be144e89837f9353a66147015c46",
+        "C005a287b587dae9e6d30e8dc8367a5e3baaee595f424ff6f4f750ef8c7d7ca01bb68a"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "12-bit Shamir (192 bits), 5/3 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "69fde0414f76faa666bbb2e35e0917f8683e257fe6eb20bd",
+      "shares": [
+        "C00158765ac00855e2911c5b8c380086fed84f6fee3654fcb9d85522080a16f0561da0",
+        "C002e65c6c006198fa623d9e31b4e19c0411db56e73851af450118bea74dd5dda08ca7",
+        "C003d64e378dba4c881dab08d4281edee903413a0a0fb1245efff63392b17511ae376e",
+        "C004e851f4849e89e9c8e91c210106294b14e4893d95a6b4461185e136e99708258da3",
+        "C005c45ffbed4fda664e68fa6912cfbb689726def4eae3e33c8da51959241a373ee615",
+        "C006425d36e0134a806f34de9fd343000e7922c2b565ff0d3290715f420192afe3d7ec",
+        "C007063738c411989f073e9c4384341948ca93f0c4a9ed73e33d12602e1fd64a4b3a8e",
+        "C00881edc7c3821f651158c646b5162ab7d9b64bfc4e8a6b5b09215229cde54bc23445",
+        "C009a9da389cd0f07f14bf3381a48ca007b47f0838c80fb73e4eba8d24260b642848a4",
+        "C00acb624f9c9afbf8af718ea5f5e0b5822a3094538ab72f8498b8c62ba9de9eaaedf2"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "12-bit Shamir (192 bits), 10/5 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "69fde0414f76faa666bbb2e35e0917f8683e257fe6eb20bd",
+      "shares": [
+        "C0016a31dcd8e7a2dbac9eefd201773909ad3eb1ec62a3cb88dce037655b57baf475cf",
+        "C002d463b8b4ff44b2796c6082712da38855879b141263703a81c8c6dbd93f0dd58a59",
+        "C003be52646c18e669d5f3e6ad901bd5f7021f4c43c223e5bb4ad09980a71751cadf2b"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "12-bit Shamir (192 bits), 3/2 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "0000",
+      "shares": [
+        "C001586aee42161e030dae3291b78f7c7c175",
+        "C002af45acfc410d97149b763ba8e1ef047b3",
+        "C003f72f42be571394193544aa1f6e93686c6",
+        "C00425bbd419062b653793a024bd216044a51",
+        "C0057dd13a5b1035663a3d92b50aae1c28b24"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "12-bit Shamir (16 bits), 5/3 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "0000",
+      "shares": [
+        "C0014686be1de5d5a74d34ec0255d2cf38a3f",
+        "C002a93db7b9f5827b2b2c7e7c9816efaa277",
+        "C00318dfdac7f77c74350fa420b29f3267ec3",
+        "C004cf7b6ad01a1febbd52f31ea2a5afa8280",
+        "C005b0d76d808d63b24a14aaf953a83edefd6",
+        "C006c6d0e379b630c3ee953ad07b61a76945a",
+        "C0074e18374ac667324ac45569f53724faf87",
+        "C0089d4f2e920462d4e571e2ff8c37879c144",
+        "C009ed90cd35a7ec2d1d770a5213fe2aadcf3",
+        "C00af8464e4a14fb41dcd2227e92c54b6f88e"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "12-bit Shamir (16 bits), 10/5 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "0000",
+      "shares": [
+        "C001da6965a5296329f1474fa059254de595f",
+        "C002b1f2994f729553e28e9f40b24a8ba92ed",
+        "C0036b9bfcea5bf67a13c9d0e0eb6fc65cbb2"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "12-bit Shamir (16 bits), 3/2 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "ffff",
+      "shares": [
+        "C001e3256842376168f2ff97f5714782ec0e3",
+        "C002fae398f3c4b2de721c55f39b5642d9954",
+        "C00319c6f0b1f3d3b680e3c206ea11c02a648",
+        "C00416b2b6390002879be3525274c6d94010f",
+        "C005f597de7b3763ef691cc5a705815bb3e13"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "12-bit Shamir (16 bits), 5/3 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "ffff",
+      "shares": [
+        "C0012312a47c8485fec326d20446ec8488a31",
+        "C002e09f60ea83e4a6b6f495fc3786c898567",
+        "C003a788080fb53e0cb923bf79f1b085b237a",
+        "C004f4309bf32afa1b1ff580e4d3fa2384226",
+        "C0058a1ec4d553bd1a66534b8595c24268f02",
+        "C0063bf13dc0ebb511cf63ca84e4b447a7675",
+        "C00721daae7f20ad447a34f9642256eff6882",
+        "C008c055e8efc37e717a7dab59ea74571d309",
+        "C00907833691197a2810ccf18fffa05067a85",
+        "C00ac32cbad8af6031d996f5ad7b4b34e4f8d"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "12-bit Shamir (16 bits), 10/5 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "ffff",
+      "shares": [
+        "C00110f093e464806e7ad95fc4cd2cd8295bd",
+        "C00221e126cdf900dce5e1bf899a59a020b28",
+        "C0033111b5299d80b29f38e04d5775781616a"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "12-bit Shamir (16 bits), 3/2 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "0b0315c1e7cfb45556e1a529dd2fafd69a1b4118f70167782ec8186089c6fb15",
+      "shares": [
+        "C001e7723ce467a03c78baea8afe7919407084d34652d9d9dc6a00f2a76d5c415fa5a21584dd204d963b6a573cc2b04b5813",
+        "C0023fb7448097c3880d4947d1a14f063967139dd2087dc675f75fe45a39a3603a76f38bae7e08abeab6247cb3725ace986a",
+        "C003d8c57864f063b475f3ad5b5f361f79169c4d819b43d01dc809f7587d220eca05cb856bbbdfe71bf560e397d063433b6c",
+        "C004a1b27834ad2cd9eb8cda432960ef89d3078b19cded48312dda05b766935b455e7f005c645808dec625dbcd6ff88e7874",
+        "C00546c044d0ca8ce5933630c9d719f6c9a2885b4a5ed35e59128c16b5221235b52d470e99a18f442f856144e9cdc103db72"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "12-bit Shamir (256 bits), 5/3 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "0b0315c1e7cfb45556e1a529dd2fafd69a1b4118f70167782ec8186089c6fb15",
+      "shares": [
+        "C0017a96d9ff19693af93048f2bb64a1904057cdadeb49afe1376ccdedccc2270ab24b2d0ffbdabeb017523f73c6c0d3537c",
+        "C00219d4ac2fb984f65b25484597d16f16931b90ec1e8fa69bb4ead678554632286c522a2729a84d9a298457687585588ea9",
+        "C003abf031bd7b0e343cf2ce267713137ee9cb86f19b17f7d2d3e867abee9c7193d5e9b9cf932b38f474a4eed1a0722e4200",
+        "C004875c1c56384ac34f30cab4a1eb040fce215bef0fa19feb0b44bf6119bdc0d9928226e0bb1982b25d437babd6db9a26ee",
+        "C00544075dc0f99ce0b0f42f41c05619291677e385b71d59d6d1edfed53f1d213a1989c23bdddde2069fd68e273916c1f454",
+        "C006c5aac3185fc9ea0294e8dbee1d15338506e22a28c07b752839358e994c23a8a2f02b74b7213a989b5a7e56ee741005f4",
+        "C007ce43c6e345fc3163b7c3bfd406d5ed66dc82e53f4a8c54f7a8e9a1e1298955f4916a09884b90956b93c508720728b38e",
+        "C0080fc666579bc20e0031ffc8670c7c54851b39c4d489d70594b6c89fae071f1729529b66ff7e08b717eb480d968f412bca",
+        "C009b5af3ab88fdbbde9eb3c408b9068fc442d1ca50a42e0f25129454b34b239d7b74374d76c4ac05b0c32dcb2f888e0cb1a",
+        "C00ac9efe039f6f2305c41ce73d50e3718cbc905b72b229cdef9853148d1b2f3adfcf3202c40745eeb38b88b5c1eefa6b9f1"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "12-bit Shamir (256 bits), 10/5 threshold"
+    },
+    {
+      "bits": 12,
+      "secret": "0b0315c1e7cfb45556e1a529dd2fafd69a1b4118f70167782ec8186089c6fb15",
+      "shares": [
+        "C001d06862437f2f6715a9972d9305ee4ea45538027814e93b171de341050126643d10f45ca935bb9dbbb6b38a4539cc95b9",
+        "C002a5f09786ee0dce2b522b7b750bcccf4e97263aa25282ba82c0e46d70756e3d21ddc05a297754c0fa3e6d391be9d2361e",
+        "C0037598f5c59122a93efbbc56e60e2281ebc91d2d1ba1a435c08be6895ca967f6ca572f4798b5ee3a39a616ab3e59d858b2"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "12-bit Shamir (256 bits), 3/2 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "deadbeefcafebabe",
+      "shares": [
+        "G0001ffe35ef45650b700cc4abf78126c5886",
+        "G0002d4c194e75e20bd2a46ee9e4b9ade70d9",
+        "G00032b22ca1308700a2b54099fdc424c92e1",
+        "G000405078ddf7637361d1868718fee6d16b5",
+        "G0005fae4d32b2067811c0a8f701836fff48d"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "16-bit Shamir (64 bits), 5/3 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "deadbeefcafebabe",
+      "shares": [
+        "G00010f9522517569c88a125f2955b019a09d",
+        "G000243384a0d160924342cbef6878e0a84d8",
+        "G000327df33f9dbf533b5c2d1a4646f65be77",
+        "G0004ce915d0d01d5fc7141c40a0d9e78ade4",
+        "G0005ba05a6afe7b5f69c4278023bbdd874ef",
+        "G0006d64eca72d3ed20faa7126843067897cf",
+        "G0007c9a86a758d18f51d8633a52cbe506e48",
+        "G0008455440b5ae0696dc6fcdd4874cc7f587",
+        "G00090b0d6be6751f2be7140428443d6b6143",
+        "G000ade13c5ce20f3a137e740603bc251d24f"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "16-bit Shamir (64 bits), 10/5 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "deadbeefcafebabe",
+      "shares": [
+        "G000177e875adbfcc3bc4a10cad73a4755826",
+        "G0002efd0eb5a7fb5778b21ef99d717e87fa3",
+        "G000398389ef7c0794c4e5e4e8a4b79639d3b"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "16-bit Shamir (64 bits), 3/2 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "50d86c90f6b9d59078a1ef76dddb68fe8d3c139233bde4e17ecd42d4a1a61d60",
+      "shares": [
+        "G00018141929fd3662e816da3953d2de67e82d3d3013f364b4d6bfde4cc0ad48b8a1b3c03182e3ab2e4d7eee3e9f91a41c24e",
+        "G0002d6ee80463ba833c30ad636c4c87628ebc58758098d01275d6f0a63e72c380aca1e075bd2c011e5b03109ab5586af2306",
+        "G000357af12d9e8ce1d426775a3f9e5905668468c35a64df3bfa6ea4f409b2568e82faf38506ec91ee586a12700783d48fc28",
+        "G0004fc8295af022edcaf539b1fc4de7306123781bac9e87a3c0823c7dfaab34b33806eb0ffdf5277e2b75fbc6e79ac3161aa",
+        "G00057dc30730d148f22e3e388af9f3957891b48ad7662888a4f3a682fcd6ba1bd165df8ff4635b78e281cf92c55417d6be84"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "16-bit Shamir (256 bits), 5/3 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "50d86c90f6b9d59078a1ef76dddb68fe8d3c139233bde4e17ecd42d4a1a61d60",
+      "shares": [
+        "G0001875a0bd4fe32be83ff0d936804e0a8efcd6e0201924cb8dfcbdcd78cbe4c76e9996e2aacd763724e7bb270b434c11ff0",
+        "G0002e8d3b3f27ce4a9a266926dca421f551aad7013949e2dd6e5b2f216f8723a9eab9228b426bb27d11a9e02e8b4b0491300",
+        "G00036c58fe2a0b043cdae8718ff522a50da93c38cc9852a3bae070acfa3595f1e5903aa433abcdf48d3e019e18effe261f0c",
+        "G0004b03cce8b0631f5c3158a71cf908be866c347fdb8560fd41c19550303d56c70fb6c01b3a99f4463e2b9ffce3f9289ce87",
+        "G00053f80515acc98b35acecec578cd9a611c74f53610c397beef8ccfc311af443029f2e00d4a17c34a2de2bd709fdd84eb5f",
+        "G000646674d4334f10394fc1f96caf0333f56591f0ecd7ddadd395a695bdb58d9afb9957ce11c870202af8e9c75695bc8b407",
+        "G0007ca0a949e778a6ef656b5532ac9784671e25374f84039b680bed04ffea6ad8a47b743e14c9d88e1eb4f3d09f2cfcd9f43",
+        "G0008de35fa724ddcbf1fb90baa4f2c2fbbf0c79595e1795154c3cb89166b203005702d7ae3bcd2469e456688ed6973c80201",
+        "G000975b3b9f546904e6f10b7632ade63544dc1cba9e079d1225427c99ded3471f4c3e09c3f3acfbfdf6b70f8e4c8e327a7c1",
+        "G000a71d6e91c95cdd6aefdfcf950a1e2e2666a30c3b49a6e6a5636cf28664229055767427a543863502777f521bdb199360c"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "16-bit Shamir (256 bits), 10/5 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "50d86c90f6b9d59078a1ef76dddb68fe8d3c139233bde4e17ecd42d4a1a61d60",
+      "shares": [
+        "G000140347bb67340cd190290073dbe95ff3c6763dd10b927b76b75b2c3d8e82386247ea95da2cd8b38463ea73698375c66f5",
+        "G00028068f76ce6809a1f05200e7a7d07fe563fae0fbd698510666287b62ab62bb5676a3b8ff2cffc5d82fe19aa4c8c7fea4a",
+        "G0003c05c8cda95c0570607b00947c392016b0815be3d261b729d6f949a8483d35bbd99aec1c231ca8125be73de001a8591df"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "16-bit Shamir (256 bits), 3/2 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "00000000",
+      "shares": [
+        "G0001775faf462b835adaea561ec3ee451874",
+        "G0002b922648440465ad12f2a71c5ca42db8f",
+        "G0003ce7dcbc26bc5000bc57c6f072407c3fb",
+        "G00042c34219cdd8c0841b08fd2a4cf3d1ad8",
+        "G00055b6b8edaf60f529b5ad9cc66217802ac"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "16-bit Shamir (32 bits), 5/3 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "00000000",
+      "shares": [
+        "G0001309f16b00fd705abd09926b2eccaa46d",
+        "G0002f048533844e6a4fca8e9c9f2971d507f",
+        "G000363090963d0d33361071927471b584af2",
+        "G000467dcf0ef09516de169e781c7a2c4d59c",
+        "G00059ff04c085ebd0489ba25173a0d01f7c6",
+        "G000689fdc4d5921358193a3108ea31d6727a",
+        "G0007d20f34d95e1da347969a5611fe9ceec0",
+        "G00085c8c72a047dd19e62cf359a7e018e0e8",
+        "G0009c18afe974719e7ee0c8f9e1982d2a7d9",
+        "G000ae9b273b9c2b9db759ec212bd6f27819b"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "16-bit Shamir (32 bits), 10/5 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "00000000",
+      "shares": [
+        "G0001da9677b0ad4200e13b9a5aa252da3707",
+        "G0002b501ef605aa901c27734b547a5b46e0e",
+        "G00036f9798d0f7eb01234caeefe4f76e5909"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "16-bit Shamir (32 bits), 3/2 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "ffffffff",
+      "shares": [
+        "G000120a0d09600d86bc35607b1dacca48d6a",
+        "G0002a38c6fd808c1530541a408f94affe20a",
+        "G0003832cbf4e081938c617a3b92279a4909f",
+        "G0004cc72e4a33446b45c3597bc50db7d271e",
+        "G0005ecd23435349edf9f63900d8be826558b"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "16-bit Shamir (32 bits), 5/3 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "ffffffff",
+      "shares": [
+        "G0001943efb80bd606a15cc7bfd04dc933cfe",
+        "G000233e20a45fcf870b271a0b01951768841",
+        "G00034df67adb95d354086c74020d2ebba9d0",
+        "G0004b42bb8cc5cd8248a43d17bf05721f8ae",
+        "G00055cb3797f1858e9506a1224bebfa67495",
+        "G0006d65aeacd0296211abfe7b33a1cfa9b53",
+        "G0007d4e8a060925da26f478ba365a8dcf5f8",
+        "G000814c7777f1d0ca9e5672f187e76a28f17",
+        "G0009da93481116c066077b08506408bcfae4",
+        "G000ac262ac8f2e37e7b63b8cbaa7879d8123"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "16-bit Shamir (32 bits), 10/5 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "ffffffff",
+      "shares": [
+        "G0001f096c7a8846317fd00faaa386b19aea1",
+        "G0002e1018f7d08eb2ffa01f4545ed61e5d43",
+        "G0003119748d58c883807010efe6742f80c1d"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "16-bit Shamir (32 bits), 3/2 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "3b23db4c7d4ef46374b71d6a4dacfd04eb1ceb9018c78a78152b5560bfd457eda20c9e55ccf5d643241014bdf1308620ebfbf14a5df007ae476d787fe17a4a88",
+      "shares": [
+        "G00016a7955a8a366eef3ec49b9c498b3cc4864c0414df6863eeb5bcabf0c88f17df48c126ddb2e65ad423c927c5ac79b021a827977db84057e42a79b3dc5780a000911c32b5cdfa071395a103436b8c92c2a",
+        "G0002e33a733bd82713234ac0376f5a3be6f042b6c52d7a41405919704e350a7b953fe240dc929b835530fd0f2e46a9f609a6591947563b06bbc8e0788ee0b774756df7f0d4e66dad6628130afc72d4f31411",
+        "G0003894326937b41fdd0a6898eabc2882ab91d555f2cf1898ad1360dec53cf2615cf854e5ad9ad21720ad4b6077cd1b95c51796caed873f613c963f3a7983e4ef3440dc80ef0effd10bf0e77b03b8d4072b3",
+        "G0004197987adcb211d91dc267ddb199b34dbd1324eb63198182663cde52cf7758a87e4d36b70a615706f284c066409173d98bbad04b6bb5ffbc5a1d602e92de19c2872c2fcfcee0af65855fa0234918eb894",
+        "G00057300d2056847f362306fc41f8128f8928ed1d4b7ba50d2ae4cb0474a32280a7783dded3b90b7575501f52f5e7158686f9bd8ed38f3af53c4225d2b91a4db1a0188fa26ea6c5a80cf48874e7dc83dde36"
+      ],
+      "threshold": 3,
+      "shareCount": 5,
+      "description": "16-bit Shamir (512 bits), 5/3 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "3b23db4c7d4ef46374b71d6a4dacfd04eb1ceb9018c78a78152b5560bfd457eda20c9e55ccf5d643241014bdf1308620ebfbf14a5df007ae476d787fe17a4a88",
+      "shares": [
+        "G00013b239fd13fcbab72b301d24e207b8050620d16fa0369ab928ecc841f7c52e2098943be2148dad67ee131dbd6c465fbcad6012cd3a91c63406007f260a56f3fbc3977eacf0f4b12e24af50885b9e44c8b",
+        "G00020e045bf77a7f9af33c4d9efe4ff621e208a5d85df0687c39ba1155b99ddd39c88bc5e3f789cf056739d9fd2c65d99e232adef61836c08b9ef01536a2542e2c1c5576e8f2b590f4e449439b607c8f3f34",
+        "G0003efb35a4ae8a6d8af90f8686d0bcef4caf62fc4cd89db54688affff25764e245b12fca9d193101101705bfbdb8a4948e353ed4c1b6ad81e6d663c73f3be8556bc68a1f17507c8a2ab6ee43bdd9d374ede",
+        "G0004a4bce2157f26e421a2ac9fd555af82d599feb3c007fac4e0ee6e8e79bb1b858e1cfcb20975640e7af928fb6f13d7fc2edd9c7f7f2e765fc5e5e2ca1aca97cfd8015013b13d12e208dd2ba41f6e960a02",
+        "G000540bd38dbaef639ed501597552c73fdbf117f98f868a5aafcab31bf7a57d195c765ada6ca9bd8e3118015442810d74e768715fee7dfb928e64d2be5981887fc96b05c04382db97d632c31352da0ab3c5a",
+        "G00067ef64a366d503761634127ee383608a497c1390fb67cf1cd748e59cfb8ec55b2a7d646d6b226c23f3983119f6866e2af3cbe531a1be605b5a0f9f4fc98b07ceac5c61a19d2a9090082d0c5d63acac081",
+        "G000740630e94119203838e4c0bb325a922b7b8e4c311deb7e871fb445b258e4b476525e14d8216586734fd262699ff472a106b09da07d3d85266da0e78f2f4548c989b910f9222e1d56859f584a34dd18130",
+        "G00080eb4c503776a5ee462111df616a9712f316e875216f49f3d84da03f3e1054c81d668645b0e98c7d8e73b3c2dfa5870537da62d2709237ef868444b9cc08ae9752d9705a3bdfead7fa3ffdd9d9805a511",
+        "G0009234f376944a88b8ca90d3783c142582cb04194443363d9d5a848f4a0cd9f64e435e04a538f7e7f9dd1dd540133de4e39874371cddbcc40ccd7d306207639777ccc2d261e64d39cd4f4e46b5b7e8fbdf7",
+        "G000af94eb6567d0e719053c65596943da9d78f7eb0f010129822b3c50809d83af26d6ec167f66a01c336a2451bc4e5aa4a658179ddb7529232cbda7223955758156d8f6d7c7b45440fb949023001b05c5258"
+      ],
+      "threshold": 5,
+      "shareCount": 10,
+      "description": "16-bit Shamir (512 bits), 10/5 threshold"
+    },
+    {
+      "bits": 16,
+      "secret": "3b23db4c7d4ef46374b71d6a4dacfd04eb1ceb9018c78a78152b5560bfd457eda20c9e55ccf5d643241014bdf1308620ebfbf14a5df007ae476d787fe17a4a88",
+      "shares": [
+        "G0001beeb6e59b44590fe1dad29be8c0d6a10d9275300b442c1884a5cc0c5265363e9d71255887bb41b3e49e8b3e9598835831cdae38879cc79c3c5820c4698224a10a2ea351d7339e6ed2a9ea43ff1d6df74",
+        "G00027dfbdcb268a721d13b5a537c1837d423ff06cbf9ef7b9fb50961a6199a52c0f39300978dde21a8d9acad985f73419331df8d65efa6aa896ee719254b23141e6d79d979c90062c5059c8bc0d2c022615d",
+        "G0003c310b2ebdce2b12f26f77ac2943abe321d0243b52677aa5e378a7bb6f1ad5e1eaf0e2995bd52399ff06e7ed6951df15f615b1832139326ee068b3db04a06d25d30c8bd9e2eab2446f1781c92d08ef4a1"
+      ],
+      "threshold": 2,
+      "shareCount": 3,
+      "description": "16-bit Shamir (512 bits), 3/2 threshold"
+    }
+  ]
+}

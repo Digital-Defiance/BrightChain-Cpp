@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/BrightChain" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/brightchain-apple" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/secp256k1" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/trezor-crypto" vcs="Git" />
+  </component>
+</project>

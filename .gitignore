@@ -1,0 +1,88 @@
+ecies-lib/
+
+# Build directories
+build/
+cmake-build-*/
+out/
+
+# TypeScript / Node.js
+node_modules/
+dist/
+*.tsbuildinfo
+.turbo/
+.eslintcache
+
+*~
+
+# Compiled files
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Test data
+brightchain_data/
+test_data/
+
+# vcpkg
+vcpkg_installed/
+
+# macOS
+.DS_Store
+*.xcuserstate
+
+# Coverage
+*.gcov
+*.gcda
+*.gcno
+coverage/
+
+# Xcode / Swift
+## User settings
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+## Build generated
+DerivedData/
+*.build/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+## Swift Package Manager
+.swiftpm/
+.build/
+Packages/
+Package.resolved
+
+## CocoaPods (if used)
+Pods/
+Podfile.lock
+
+## Carthage (if used)
+Carthage/Build/
+Carthage/Checkouts/
+
+## fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+## Code Injection
+iOSInjectionProject/
+
+## Provisioning profiles (keep these private)
+*.mobileprovision
+*.provisionprofile
+
+## Archives
+*.xcarchive

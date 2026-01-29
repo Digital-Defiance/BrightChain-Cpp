@@ -1,0 +1,33 @@
+{
+  "shamir": [
+    {
+      "bits": 8,
+      "secret": "deadbeef",
+      "shares": [
+        "80129fb6954510dd8d4575266819b9588ab",
+        "802261f45269cdc6e9fe2fa713d386b6ed5",
+        "8030fe42c72cdd1b64bb5a817bd7d535891",
+        "80481c9ec4edd9af78bf48c2cfda2dec969",
+        "805a832851a8c972f5fa3de4a7de7e6ff2d"
+      ],
+      "threshold": 3
+    },
+    {
+      "bits": 10,
+      "secret": "cafebabe",
+      "shares": [
+        "A00115deb7acd48224ec6a6548a7a8bb2d0a4",
+        "A0022b434dd2a54ad27a63bf447c9d70dc089",
+        "A0033597a21d56926b50907cb6b23d91e4ff3",
+        "A0043a50b586107d13ab94440093370f3c093",
+        "A0051583bf601760cb94b3f094529525fb9c0",
+        "A00609818f4c8d62ff2912c414178571f65b6",
+        "A0072d58ddc9ad25bad0acd63abf33aecf985",
+        "A008046f4aefe13a9c0d51bcf323ba4a0b3b7",
+        "A009140e49eee06d3cb26206e2a861603651b",
+        "A00a3cd13d7fd5ce782d6c8015eff64134bfe"
+      ],
+      "threshold": 5
+    }
+  ]
+}

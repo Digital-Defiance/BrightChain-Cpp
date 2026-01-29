@@ -1,0 +1,9 @@
+[submodule "external/secp256k1"]
+	path = external/secp256k1
+	url = https://github.com/bitcoin-core/secp256k1.git
+[submodule "external/trezor-crypto"]
+	path = external/trezor-crypto
+	url = https://github.com/trezor/trezor-crypto.git
+[submodule "brightchain-apple"]
+	path = brightchain-apple
+	url = https://github.com/Digital-Defiance/BrightChain-Apple.git
