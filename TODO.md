@@ -168,22 +168,22 @@ The original BrightChain TypeScript source is presented in ./BrightChain for ref
   - [x] Update metadata
 
 ### Block Types
-- [ ] RawDataBlock (deferred - not needed for Phase 5)
-  - [ ] Pure data storage
-  - [ ] No header
-  - [ ] Checksum validation
-- [ ] StructuredBlock (deferred - not needed for Phase 5)
-  - [ ] Header serialization
-  - [ ] Type identification
-  - [ ] Version handling
-- [ ] CBL (deferred - not needed for Phase 5)
-  - [ ] List of block references
-  - [ ] Checksum array
-  - [ ] Serialization/deserialization
-- [ ] ExtendedCBL (deferred - not needed for Phase 5)
-  - [ ] File name storage
-  - [ ] MIME type storage
-  - [ ] Validation (patterns, length limits)
+- [x] RawDataBlock
+  - [x] Pure data storage
+  - [x] No header
+  - [x] Checksum validation
+- [x] StructuredBlock (base functionality in CBL)
+  - [x] Header serialization
+  - [x] Type identification
+  - [x] Version handling
+- [x] CBL
+  - [x] List of block references
+  - [x] Checksum array
+  - [x] Serialization/deserialization
+- [x] ExtendedCBL
+  - [x] File name storage
+  - [x] MIME type storage
+  - [x] Validation (patterns, length limits)
 
 ---
 
@@ -404,12 +404,17 @@ The original BrightChain TypeScript source is presented in ./BrightChain for ref
 ## Compatibility Matrix
 
 ### TypeScript ↔ C++ Compatibility
-- [ ] Block format compatibility
-- [ ] Checksum format compatibility
-- [ ] Encryption format compatibility
-- [ ] Metadata format compatibility
+- [x] Block format compatibility
+- [x] Checksum format compatibility
+- [x] Encryption format compatibility
+- [x] Metadata format compatibility
 - [ ] API compatibility
 - [ ] Quorum document format compatibility
+- [x] CBL/ExtendedCBL cross-platform compatibility
+  - [x] Exact header structure match (170 bytes)
+  - [x] Big-endian byte order
+  - [x] CRC8 calculation
+  - [x] Cross-platform tests
 
 ---
 

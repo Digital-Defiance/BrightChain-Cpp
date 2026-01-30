@@ -7,6 +7,10 @@ add_library(brightchain
     ec_key_pair.cpp
     ecies.cpp
     shamir.cpp
+    raw_data_block.cpp
+    cbl.cpp
+    extended_cbl.cpp
+    super_cbl.cpp
 )
 
 target_include_directories(brightchain

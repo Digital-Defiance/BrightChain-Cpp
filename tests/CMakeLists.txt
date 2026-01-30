@@ -15,6 +15,9 @@ add_executable(brightchain_tests
     shamir_test.cpp
     shamir_cross_compat_test.cpp
     edge_case_cross_compat_test.cpp
+    block_types_test.cpp
+    cbl_cross_compat_test.cpp
+    cbl_bidirectional_test.cpp
 )
 
 target_link_libraries(brightchain_tests

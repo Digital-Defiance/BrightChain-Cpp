@@ -13,7 +13,7 @@ struct SiteConstants {
     static constexpr const char* VERSION = "1.0.0";
     static constexpr const char* DESCRIPTION = "BrightChain";
     static constexpr const char* EMAIL_FROM = "noreply@brightchain.org";
-    static constexpr const char* DOMAIN = "localhost:3000";
+    static constexpr const char* DEFAULT_DOMAIN = "localhost:3000";
     static constexpr uint32_t CSP_NONCE_SIZE = 32;
 };
 

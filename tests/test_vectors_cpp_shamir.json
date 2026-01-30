@@ -4,11 +4,11 @@
       "bits": 8,
       "secret": "deadbeef",
       "shares": [
-        "801125eebba91f0ce3585fcd648486fe0f6",
-        "802bde0958af83c8bd55b9a3fcbfd585b4f",
-        "803afbe7e3069cc45e0de66e9826b9a0556",
-        "80439b052a2d65b23719bc87cf5d0f710c0",
-        "8052beeb91847abed441e34aabc46354ed9"
+        "8018df4a8981a0b93beb72cf676169e4f02",
+        "80202554ab2f1727d7c6da8d51f3e10631e",
+        "8038fa1e22aeb79eec2da842368f62392f3",
+        "8041010883fcc69ff8ca2aa27daaa8191c8",
+        "8059de420a7d6626c321586d1ad62b26025"
       ],
       "threshold": 3
     },
@@ -16,16 +16,16 @@
       "bits": 10,
       "secret": "cafebabe",
       "shares": [
-        "A0011e2aecadec530419827d5519fa58a5583",
-        "A0020a845d612af86c31075f7d4a717bb6c5b",
-        "A0030369c31a41cbb7347f041883464e3c13f",
-        "A0040f2b25b8fbccadf551f29d4bd3f83254d",
-        "A0052112cffa02dcfbeecf5beb90d58ae03bd",
-        "A0063a849644e23009db8f9fa5e73c2742944",
-        "A007037a0ed09c4080dceb10e3eceb9754ded",
-        "A0082799f7a0c0d515b4110a5e3a8f8e0f059",
-        "A00927d2efe9600935b219b9c7fba86c2192f",
-        "A00a2ef5ad944037f9a1d2f8bf37c67bbf4cf"
+        "A00115977f296d8e370c58599738626abb13e",
+        "A00204d93d1d23b94431758222fb29f9f33c4",
+        "A0030b85200080883daa4aa4cc6d81020c8e0",
+        "A004000aa514e610353a6fedf5c311719be5c",
+        "A0050b86f69e281ca50577b5b61ddf2b2fa04",
+        "A00613682d8dbc108554149319ce79f3f020f",
+        "A007022f1c33bca35bfc6bb423be6197eb6f3",
+        "A0083cc746ab8f54b8c6cce1b8fc3ac3391e5",
+        "A0093a110bcc54acb91208405be59e9044f8e",
+        "A00a0927aea7bbb8f5198f6dbc22e36408660"
       ],
       "threshold": 5
     }
