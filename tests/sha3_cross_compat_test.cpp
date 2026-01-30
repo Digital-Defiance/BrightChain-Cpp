@@ -11,8 +11,20 @@ protected:
     json testVectors;
 
     void SetUp() override {
-        std::ifstream file("test_vectors_sha3.json");
-        ASSERT_TRUE(file.is_open()) << "test_vectors_sha3.json not found. Run generate_sha3_vectors.ts first.";
+        // Try multiple locations for the test vectors file
+        std::vector<std::string> paths = {
+            "test_vectors_sha3.json",
+            "tests/test_vectors_sha3.json",
+            "../tests/test_vectors_sha3.json"
+        };
+        
+        std::ifstream file;
+        for (const auto& path : paths) {
+            file.open(path);
+            if (file.is_open()) break;
+        }
+        
+        ASSERT_TRUE(file.is_open()) << "test_vectors_sha3.json not found in any expected location";
         file >> testVectors;
         file.close();
     }

@@ -1,0 +1,594 @@
+#include "brightchain/paillier.hpp"
+#include "brightchain/hmac_drbg.hpp"
+#include <openssl/bn.h>
+#include <openssl/evp.h>
+#include <openssl/kdf.h>
+#include <openssl/ec.h>
+#include <openssl/obj_mac.h>
+#include <openssl/hmac.h>
+#include <nlohmann/json.hpp>
+#include <stdexcept>
+#include <random>
+#include <sstream>
+#include <iomanip>
+#include <iostream>
+
+using json = nlohmann::json;
+
+namespace brightchain {
+
+// Helper: Convert bytes to hex string
+static std::string bytes_to_hex(const std::vector<uint8_t>& bytes) {
+    std::ostringstream oss;
+    for (uint8_t b : bytes) {
+        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(b);
+    }
+    return oss.str();
+}
+
+// Helper: Convert hex string to bytes
+static std::vector<uint8_t> hex_to_bytes(const std::string& hex) {
+    std::vector<uint8_t> bytes;
+    for (size_t i = 0; i < hex.length(); i += 2) {
+        std::string byteString = hex.substr(i, 2);
+        uint8_t byte = static_cast<uint8_t>(std::strtol(byteString.c_str(), nullptr, 16));
+        bytes.push_back(byte);
+    }
+    return bytes;
+}
+
+// Helper: Convert bignum to bytes
+static std::vector<uint8_t> bn_to_bytes(const BIGNUM* bn) {
+    int len = BN_num_bytes(bn);
+    if (len == 0) {
+        return {0x00}; // Return single zero byte for zero value
+    }
+    std::vector<uint8_t> result(len);
+    BN_bn2bin(bn, result.data());
+    return result;
+}
+
+// Helper: Convert bytes to bignum
+static BIGNUM* bytes_to_bn(const std::vector<uint8_t>& bytes) {
+    return BN_bin2bn(bytes.data(), bytes.size(), nullptr);
+}
+
+// Helper: Modular exponentiation
+static std::vector<uint8_t> mod_pow(const std::vector<uint8_t>& base,
+                                     const std::vector<uint8_t>& exp,
+                                     const std::vector<uint8_t>& mod) {
+    BN_CTX* ctx = BN_CTX_new();
+    BIGNUM* bn_base = bytes_to_bn(base);
+    BIGNUM* bn_exp = bytes_to_bn(exp);
+    BIGNUM* bn_mod = bytes_to_bn(mod);
+    BIGNUM* bn_result = BN_new();
+    
+    BN_mod_exp(bn_result, bn_base, bn_exp, bn_mod, ctx);
+    
+    auto result = bn_to_bytes(bn_result);
+    
+    BN_free(bn_base);
+    BN_free(bn_exp);
+    BN_free(bn_mod);
+    BN_free(bn_result);
+    BN_CTX_free(ctx);
+    
+    return result;
+}
+
+// Helper: Generate random prime
+static BIGNUM* generate_prime(int bits) {
+    BIGNUM* prime = BN_new();
+    if (!BN_generate_prime_ex(prime, bits, 0, nullptr, nullptr, nullptr)) {
+        BN_free(prime);
+        throw std::runtime_error("Failed to generate prime");
+    }
+    return prime;
+}
+
+// PaillierPublicKey implementation
+PaillierPublicKey::PaillierPublicKey(const std::vector<uint8_t>& n, const std::vector<uint8_t>& g)
+    : n_(n), g_(g) {
+    // Calculate n^2
+    BIGNUM* bn_n = bytes_to_bn(n);
+    BIGNUM* bn_n2 = BN_new();
+    BN_CTX* ctx = BN_CTX_new();
+    
+    BN_mul(bn_n2, bn_n, bn_n, ctx);
+    n2_ = bn_to_bytes(bn_n2);
+    
+    BN_free(bn_n);
+    BN_free(bn_n2);
+    BN_CTX_free(ctx);
+}
+
+std::vector<uint8_t> PaillierPublicKey::encrypt(const std::vector<uint8_t>& plaintext) const {
+    // c = g^m * r^n mod n^2
+    BN_CTX* ctx = BN_CTX_new();
+    BIGNUM* bn_g = bytes_to_bn(g_);
+    BIGNUM* bn_m = bytes_to_bn(plaintext);
+    BIGNUM* bn_n = bytes_to_bn(n_);
+    BIGNUM* bn_n2 = bytes_to_bn(n2_);
+    BIGNUM* bn_r = BN_new();
+    BIGNUM* bn_result = BN_new();
+    BIGNUM* bn_temp = BN_new();
+    
+    // Generate random r
+    BN_rand_range(bn_r, bn_n);
+    
+    // g^m mod n^2
+    BN_mod_exp(bn_result, bn_g, bn_m, bn_n2, ctx);
+    
+    // r^n mod n^2
+    BN_mod_exp(bn_temp, bn_r, bn_n, bn_n2, ctx);
+    
+    // Multiply and mod
+    BN_mod_mul(bn_result, bn_result, bn_temp, bn_n2, ctx);
+    
+    auto result = bn_to_bytes(bn_result);
+    
+    BN_free(bn_g);
+    BN_free(bn_m);
+    BN_free(bn_n);
+    BN_free(bn_n2);
+    BN_free(bn_r);
+    BN_free(bn_result);
+    BN_free(bn_temp);
+    BN_CTX_free(ctx);
+    
+    return result;
+}
+
+std::vector<uint8_t> PaillierPublicKey::addition(const std::vector<std::vector<uint8_t>>& ciphertexts) const {
+    if (ciphertexts.empty()) {
+        throw std::invalid_argument("No ciphertexts provided");
+    }
+    
+    BN_CTX* ctx = BN_CTX_new();
+    BIGNUM* bn_n2 = bytes_to_bn(n2_);
+    BIGNUM* bn_result = BN_new();
+    BN_one(bn_result);
+    
+    for (const auto& ct : ciphertexts) {
+        BIGNUM* bn_ct = bytes_to_bn(ct);
+        BN_mod_mul(bn_result, bn_result, bn_ct, bn_n2, ctx);
+        BN_free(bn_ct);
+    }
+    
+    auto result = bn_to_bytes(bn_result);
+    
+    BN_free(bn_n2);
+    BN_free(bn_result);
+    BN_CTX_free(ctx);
+    
+    return result;
+}
+
+std::vector<uint8_t> PaillierPublicKey::plaintextAddition(
+    const std::vector<uint8_t>& ciphertext,
+    const std::vector<std::vector<uint8_t>>& plaintexts) const {
+    
+    BN_CTX* ctx = BN_CTX_new();
+    BIGNUM* bn_g = bytes_to_bn(g_);
+    BIGNUM* bn_n2 = bytes_to_bn(n2_);
+    BIGNUM* bn_result = bytes_to_bn(ciphertext);
+    BIGNUM* bn_temp = BN_new();
+    
+    for (const auto& pt : plaintexts) {
+        BIGNUM* bn_pt = bytes_to_bn(pt);
+        BN_mod_exp(bn_temp, bn_g, bn_pt, bn_n2, ctx);
+        BN_mod_mul(bn_result, bn_result, bn_temp, bn_n2, ctx);
+        BN_free(bn_pt);
+    }
+    
+    auto result = bn_to_bytes(bn_result);
+    
+    BN_free(bn_g);
+    BN_free(bn_n2);
+    BN_free(bn_result);
+    BN_free(bn_temp);
+    BN_CTX_free(ctx);
+    
+    return result;
+}
+
+std::vector<uint8_t> PaillierPublicKey::multiply(const std::vector<uint8_t>& ciphertext, int k) const {
+    BN_CTX* ctx = BN_CTX_new();
+    BIGNUM* bn_c = bytes_to_bn(ciphertext);
+    BIGNUM* bn_k = BN_new();
+    BN_set_word(bn_k, k);
+    BIGNUM* bn_n2 = bytes_to_bn(n2_);
+    BIGNUM* bn_result = BN_new();
+    
+    BN_mod_exp(bn_result, bn_c, bn_k, bn_n2, ctx);
+    
+    auto result = bn_to_bytes(bn_result);
+    
+    BN_free(bn_c);
+    BN_free(bn_k);
+    BN_free(bn_n2);
+    BN_free(bn_result);
+    BN_CTX_free(ctx);
+    
+    return result;
+}
+
+int PaillierPublicKey::bitLength() const {
+    BIGNUM* bn_n = bytes_to_bn(n_);
+    int bits = BN_num_bits(bn_n);
+    BN_free(bn_n);
+    return bits;
+}
+
+std::string PaillierPublicKey::nHex() const {
+    return bigintToHex(n_);
+}
+
+std::string PaillierPublicKey::gHex() const {
+    return bigintToHex(g_);
+}
+
+std::string PaillierPublicKey::bigintToHex(const std::vector<uint8_t>& bigint) {
+    std::ostringstream oss;
+    for (auto byte : bigint) {
+        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+    }
+    return oss.str();
+}
+
+std::string PaillierPublicKey::toJson() const {
+    json j;
+    j["n"] = bytes_to_hex(n_);
+    j["g"] = bytes_to_hex(g_);
+    return j.dump();
+}
+
+std::shared_ptr<PaillierPublicKey> PaillierPublicKey::fromJson(const std::string& jsonStr) {
+    json j = json::parse(jsonStr);
+    auto n = hex_to_bytes(j["n"].get<std::string>());
+    auto g = hex_to_bytes(j["g"].get<std::string>());
+    return std::make_shared<PaillierPublicKey>(n, g);
+}
+
+// PaillierPrivateKey implementation
+PaillierPrivateKey::PaillierPrivateKey(const std::vector<uint8_t>& lambda,
+                                       const std::vector<uint8_t>& mu,
+                                       std::shared_ptr<PaillierPublicKey> publicKey,
+                                       const std::vector<uint8_t>& p,
+                                       const std::vector<uint8_t>& q)
+    : lambda_(lambda), mu_(mu), p_(p), q_(q), publicKey_(publicKey) {}
+
+std::vector<uint8_t> PaillierPrivateKey::decrypt(const std::vector<uint8_t>& ciphertext) const {
+    // m = L(c^lambda mod n^2) * mu mod n
+    // where L(x) = (x-1)/n
+    BN_CTX* ctx = BN_CTX_new();
+    BIGNUM* bn_c = bytes_to_bn(ciphertext);
+    BIGNUM* bn_lambda = bytes_to_bn(lambda_);
+    BIGNUM* bn_mu = bytes_to_bn(mu_);
+    BIGNUM* bn_n = bytes_to_bn(publicKey_->n());
+    BIGNUM* bn_n2 = bytes_to_bn(publicKey_->n2());
+    BIGNUM* bn_temp = BN_new();
+    BIGNUM* bn_result = BN_new();
+    BIGNUM* bn_one = BN_new();
+    BN_one(bn_one);
+    
+    // c^lambda mod n^2
+    BN_mod_exp(bn_temp, bn_c, bn_lambda, bn_n2, ctx);
+    
+    // L(x) = (x-1)/n
+    BN_sub(bn_temp, bn_temp, bn_one);
+    BN_div(bn_temp, nullptr, bn_temp, bn_n, ctx);
+    
+    // * mu mod n
+    BN_mod_mul(bn_result, bn_temp, bn_mu, bn_n, ctx);
+    
+    auto result = bn_to_bytes(bn_result);
+    
+    BN_free(bn_c);
+    BN_free(bn_lambda);
+    BN_free(bn_mu);
+    BN_free(bn_n);
+    BN_free(bn_n2);
+    BN_free(bn_temp);
+    BN_free(bn_result);
+    BN_free(bn_one);
+    BN_CTX_free(ctx);
+    
+    return result;
+}
+
+std::vector<uint8_t> PaillierPrivateKey::getRandomFactor(const std::vector<uint8_t>& ciphertext) const {
+    BIGNUM* bn_n = bytes_to_bn(publicKey_->n());
+    BIGNUM* bn_g = bytes_to_bn(publicKey_->g());
+    BIGNUM* bn_n_plus_1 = BN_new();
+    BN_add(bn_n_plus_1, bn_n, BN_value_one());
+    
+    if (BN_cmp(bn_g, bn_n_plus_1) != 0) {
+        BN_free(bn_n);
+        BN_free(bn_g);
+        BN_free(bn_n_plus_1);
+        throw std::runtime_error("Cannot recover random factor if g != n + 1");
+    }
+    BN_free(bn_n_plus_1);
+    
+    if (!hasPrimes()) {
+        BN_free(bn_n);
+        BN_free(bn_g);
+        throw std::runtime_error("Cannot get random factor without p and q");
+    }
+    
+    BN_CTX* ctx = BN_CTX_new();
+    BIGNUM* bn_c = bytes_to_bn(ciphertext);
+    BIGNUM* bn_lambda = bytes_to_bn(lambda_);
+    BIGNUM* bn_n2 = bytes_to_bn(publicKey_->n2());
+    BIGNUM* bn_mu = bytes_to_bn(mu_);
+    
+    BIGNUM* bn_r = BN_new();
+    BN_mod_exp(bn_r, bn_c, bn_lambda, bn_n2, ctx);
+    BN_sub(bn_r, bn_r, BN_value_one());
+    BN_div(bn_r, nullptr, bn_r, bn_n, ctx);
+    
+    BIGNUM* bn_mu_inv = BN_new();
+    BN_mod_inverse(bn_mu_inv, bn_mu, bn_n, ctx);
+    BN_mod_mul(bn_r, bn_r, bn_mu_inv, bn_n, ctx);
+    
+    auto result = bn_to_bytes(bn_r);
+    
+    BN_free(bn_n);
+    BN_free(bn_g);
+    BN_free(bn_c);
+    BN_free(bn_lambda);
+    BN_free(bn_n2);
+    BN_free(bn_mu);
+    BN_free(bn_r);
+    BN_free(bn_mu_inv);
+    BN_CTX_free(ctx);
+    
+    return result;
+}
+
+std::string PaillierPrivateKey::toJson() const {
+    json j;
+    j["lambda"] = bytes_to_hex(lambda_);
+    j["mu"] = bytes_to_hex(mu_);
+    return j.dump();
+}
+
+std::shared_ptr<PaillierPrivateKey> PaillierPrivateKey::fromJson(const std::string& jsonStr) {
+    json j = json::parse(jsonStr);
+    auto lambda = hex_to_bytes(j["lambda"].get<std::string>());
+    auto mu = hex_to_bytes(j["mu"].get<std::string>());
+    
+    // Note: This requires the public key to be loaded separately
+    // In practice, you'd load both public and private keys together
+    throw std::runtime_error("PaillierPrivateKey::fromJson requires public key - use full key pair loading");
+}
+
+
+// Miller-Rabin primality test
+static bool miller_rabin_test(const BIGNUM* n, int iterations) {
+    BN_CTX* ctx = BN_CTX_new();
+    BIGNUM* n_minus_1 = BN_new();
+    BIGNUM* d = BN_new();
+    BIGNUM* a = BN_new();
+    BIGNUM* x = BN_new();
+    BIGNUM* two = BN_new();
+    BN_set_word(two, 2);
+    
+    BN_sub(n_minus_1, n, BN_value_one());
+    BN_copy(d, n_minus_1);
+    
+    int r = 0;
+    while (!BN_is_odd(d)) {
+        BN_rshift1(d, d);
+        r++;
+    }
+    
+    const int witnesses[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37};
+    bool is_prime = true;
+    
+    for (int i = 0; i < iterations && i < 12; i++) {
+        BN_set_word(a, witnesses[i]);
+        BN_mod_exp(x, a, d, n, ctx);
+        
+        if (BN_is_one(x) || BN_cmp(x, n_minus_1) == 0) continue;
+        
+        bool found = false;
+        for (int j = 1; j < r; j++) {
+            BN_mod_mul(x, x, x, n, ctx);
+            if (BN_is_one(x)) {
+                is_prime = false;
+                goto cleanup;
+            }
+            if (BN_cmp(x, n_minus_1) == 0) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            is_prime = false;
+            break;
+        }
+    }
+    
+cleanup:
+    BN_free(n_minus_1);
+    BN_free(d);
+    BN_free(a);
+    BN_free(x);
+    BN_free(two);
+    BN_CTX_free(ctx);
+    return is_prime;
+}
+
+// Generate deterministic prime using DRBG
+static BIGNUM* generate_deterministic_prime(brightchain::HMAC_DRBG& drbg, int bits, int iterations) {
+    const int SMALL_PRIMES[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53};
+    int num_bytes = (bits + 7) / 8;
+    int top_bit_mask = 1 << ((bits - 1) % 8);
+    
+    for (int attempt = 0; attempt < 10000; attempt++) {
+        auto bytes = drbg.generate(num_bytes);
+        bytes[0] |= top_bit_mask;
+        bytes[num_bytes - 1] |= 1;
+        
+        BIGNUM* candidate = BN_bin2bn(bytes.data(), bytes.size(), nullptr);
+        
+        bool is_composite = false;
+        for (int prime : SMALL_PRIMES) {
+            BIGNUM* prime_bn = BN_new();
+            BN_set_word(prime_bn, prime);
+            BIGNUM* rem = BN_new();
+            BN_CTX* temp_ctx = BN_CTX_new();
+            BN_mod(rem, candidate, prime_bn, temp_ctx);
+            bool is_zero = BN_is_zero(rem);
+            bool not_equal = (BN_cmp(candidate, prime_bn) != 0);
+            BN_free(prime_bn);
+            BN_free(rem);
+            BN_CTX_free(temp_ctx);
+            if (is_zero && not_equal) {
+                is_composite = true;
+                break;
+            }
+        }
+        
+        if (!is_composite && miller_rabin_test(candidate, iterations)) {
+            return candidate;
+        }
+        BN_free(candidate);
+    }
+    throw std::runtime_error("Failed to generate prime");
+}
+
+// Key derivation
+PaillierKeyPair deriveVotingKeysFromECDH(
+    const std::vector<uint8_t>& ecdhPrivateKey,
+    const std::vector<uint8_t>& ecdhPublicKey,
+    int keypairBitLength,
+    int primeTestIterations) {
+    
+    // 1. Compute ECDH shared secret (FULL 65 bytes with 0x04 prefix)
+    EC_KEY* ec_key = EC_KEY_new_by_curve_name(NID_secp256k1);
+    BIGNUM* priv_bn = bytes_to_bn(ecdhPrivateKey);
+    EC_KEY_set_private_key(ec_key, priv_bn);
+    
+    EC_POINT* pub_point = EC_POINT_new(EC_KEY_get0_group(ec_key));
+    std::cerr << "DEBUG: Created pub_point" << std::endl;
+    EC_POINT_oct2point(EC_KEY_get0_group(ec_key), pub_point, 
+                       ecdhPublicKey.data(), ecdhPublicKey.size(), nullptr);
+    std::cerr << "DEBUG: Converted public key to point" << std::endl;
+    
+    // Get FULL shared secret (65 bytes with 0x04 prefix) - matches TypeScript
+    size_t shared_secret_len = 65;
+    std::vector<uint8_t> shared_secret(shared_secret_len);
+    EC_POINT_point2oct(EC_KEY_get0_group(ec_key), pub_point, 
+                       POINT_CONVERSION_UNCOMPRESSED,
+                       shared_secret.data(), shared_secret_len, nullptr);
+    std::cerr << "DEBUG: Got initial shared secret" << std::endl;
+    
+    // Compute actual ECDH (multiply point by private key)
+    EC_POINT* result_point = EC_POINT_new(EC_KEY_get0_group(ec_key));
+    std::cerr << "DEBUG: Created result_point" << std::endl;
+    EC_POINT_mul(EC_KEY_get0_group(ec_key), result_point, nullptr, pub_point, priv_bn, nullptr);
+    std::cerr << "DEBUG: Computed ECDH" << std::endl;
+    EC_POINT_point2oct(EC_KEY_get0_group(ec_key), result_point,
+                       POINT_CONVERSION_UNCOMPRESSED,
+                       shared_secret.data(), shared_secret_len, nullptr);
+    std::cerr << "DEBUG: Got final shared secret" << std::endl;
+    
+    // 2. Derive seed using HKDF with FULL shared secret
+    std::vector<uint8_t> seed(64);
+    EVP_PKEY_CTX* pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr);
+    std::cerr << "DEBUG: Created HKDF context" << std::endl;
+    EVP_PKEY_derive_init(pctx);
+    EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha512());
+    EVP_PKEY_CTX_set1_hkdf_key(pctx, shared_secret.data(), shared_secret.size());
+    std::string info = "PaillierPrimeGen";
+    EVP_PKEY_CTX_add1_hkdf_info(pctx, (const uint8_t*)info.data(), info.size());
+    size_t outlen = seed.size();
+    EVP_PKEY_derive(pctx, seed.data(), &outlen);
+    EVP_PKEY_CTX_free(pctx);
+    std::cerr << "DEBUG: Derived seed using HKDF" << std::endl;
+    
+    // 3. Generate primes p and q using HMAC-DRBG
+    brightchain::HMAC_DRBG drbg(seed);
+    std::cerr << "DEBUG: Created HMAC_DRBG" << std::endl;
+    int primeBits = keypairBitLength / 2;
+    std::cerr << "DEBUG: Generating first prime (" << primeBits << " bits)..." << std::endl;
+    BIGNUM* p = generate_deterministic_prime(drbg, primeBits, primeTestIterations);
+    std::cerr << "DEBUG: Generated first prime" << std::endl;
+    BIGNUM* q = generate_deterministic_prime(drbg, primeBits, primeTestIterations);
+    std::cerr << "DEBUG: Generated second prime" << std::endl;
+    
+    // 4. Calculate n = p * q
+    BN_CTX* ctx = BN_CTX_new();
+    BIGNUM* n = BN_new();
+    BN_mul(n, p, q, ctx);
+    std::cerr << "DEBUG: Calculated n = p * q" << std::endl;
+    
+    // 5. Calculate lambda = lcm(p-1, q-1)
+    BIGNUM* p_minus_1 = BN_new();
+    BIGNUM* q_minus_1 = BN_new();
+    BIGNUM* gcd_val = BN_new();
+    BIGNUM* lambda = BN_new();
+    BIGNUM* temp = BN_new();
+    
+    BN_sub(p_minus_1, p, BN_value_one());
+    BN_sub(q_minus_1, q, BN_value_one());
+    BN_gcd(gcd_val, p_minus_1, q_minus_1, ctx);
+    BN_mul(temp, p_minus_1, q_minus_1, ctx);
+    BN_div(lambda, nullptr, temp, gcd_val, ctx);
+    std::cerr << "DEBUG: Calculated lambda" << std::endl;
+    
+    // 6. g = n + 1
+    BIGNUM* g = BN_new();
+    BN_add(g, n, BN_value_one());
+    std::cerr << "DEBUG: Calculated g" << std::endl;
+    
+    // 7. Calculate mu = (L(g^lambda mod n^2))^-1 mod n
+    // where L(x) = (x-1)/n
+    BIGNUM* n_squared = BN_new();
+    BIGNUM* g_lambda = BN_new();
+    BIGNUM* l = BN_new();
+    BIGNUM* mu = BN_new();
+    
+    BN_mul(n_squared, n, n, ctx);
+    BN_mod_exp(g_lambda, g, lambda, n_squared, ctx);
+    BN_sub(l, g_lambda, BN_value_one());
+    BN_div(l, nullptr, l, n, ctx);
+    BN_mod_inverse(mu, l, n, ctx);
+    std::cerr << "DEBUG: Calculated mu" << std::endl;
+    
+    // Create key pair
+    auto publicKey = std::make_shared<PaillierPublicKey>(
+        bn_to_bytes(n), bn_to_bytes(g));
+    std::cerr << "DEBUG: Created public key" << std::endl;
+    auto privateKey = std::make_shared<PaillierPrivateKey>(
+        bn_to_bytes(lambda), bn_to_bytes(mu), publicKey,
+        bn_to_bytes(p), bn_to_bytes(q));
+    std::cerr << "DEBUG: Created private key" << std::endl;
+    
+    // Cleanup
+    BN_free(priv_bn);
+    BN_free(p);
+    BN_free(q);
+    BN_free(n);
+    BN_free(g);
+    BN_free(lambda);
+    BN_free(mu);
+    BN_free(n_squared);
+    BN_free(g_lambda);
+    BN_free(l);
+    BN_free(p_minus_1);
+    BN_free(q_minus_1);
+    BN_free(gcd_val);
+    BN_free(temp);
+    BN_CTX_free(ctx);
+    EC_KEY_free(ec_key);
+    EC_POINT_free(pub_point);
+    EC_POINT_free(result_point);
+    
+    return {publicKey, privateKey};
+}
+
+} // namespace brightchain

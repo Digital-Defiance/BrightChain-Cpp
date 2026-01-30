@@ -6,6 +6,13 @@
 namespace brightchain {
 
 std::vector<uint8_t> ExtendedCBLMetadata::serialize() const {
+    if (fileName.length() > CBLConstants::MAX_FILE_NAME_LENGTH) {
+        throw std::invalid_argument("File name too long");
+    }
+    if (mimeType.length() > CBLConstants::MAX_MIME_TYPE_LENGTH) {
+        throw std::invalid_argument("MIME type too long");
+    }
+    
     std::vector<uint8_t> result;
     
     uint16_t fileNameLen = static_cast<uint16_t>(fileName.length());

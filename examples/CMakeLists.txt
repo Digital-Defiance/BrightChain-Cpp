@@ -33,3 +33,21 @@ target_link_libraries(generate_test_vectors
     PRIVATE
         brightchain
 )
+
+add_executable(member_example
+    member_example.cpp
+)
+
+target_link_libraries(member_example
+    PRIVATE
+        brightchain
+)
+
+add_executable(voting_examples
+    voting_examples.cpp
+)
+
+target_link_libraries(voting_examples
+    PRIVATE
+        brightchain
+)

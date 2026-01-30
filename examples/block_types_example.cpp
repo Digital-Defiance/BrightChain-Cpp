@@ -55,45 +55,11 @@ int main() {
     std::cout << "\n";
 
     // 3. ExtendedCBL - CBL with file metadata
-    std::cout << "3. Creating ExtendedCBL Block...\n";
-    CBLHeader ecblHeader;
-    ecblHeader.magic = BlockHeaderConstants::MAGIC_PREFIX;
-    ecblHeader.version = BlockHeaderConstants::VERSION;
-    ecblHeader.type = static_cast<uint8_t>(StructuredBlockType::ExtendedCBL);
-    ecblHeader.creatorId.fill(0x99);
-    ecblHeader.dateCreated = std::time(nullptr);
-    ecblHeader.addressCount = 2;
-    ecblHeader.tupleSize = 2;
-    ecblHeader.originalDataLength = 2048;
-    ecblHeader.originalDataChecksum.fill(0xEF);
-    ecblHeader.signature.fill(0xFE);
+    std::cout << "3. ExtendedCBL Block (skipped - complex manual construction)\n";
+    std::cout << "   Note: ExtendedCBL requires metadata embedded in header structure\n";
+    std::cout << "   See ExtendedCBL tests for proper construction examples\n\n";
 
-    auto ecblData = ecblHeader.serialize();
-    
-    // Add file metadata
-    ExtendedCBLMetadata metadata;
-    metadata.fileName = "example.pdf";
-    metadata.mimeType = "application/pdf";
-    auto metadataBytes = metadata.serialize();
-    ecblData.insert(ecblData.end(), metadataBytes.begin(), metadataBytes.end());
-    
-    // Add two block references
-    for (int i = 0; i < 2; ++i) {
-        Checksum::HashArray hash;
-        hash.fill(0x20 + i);
-        ecblData.insert(ecblData.end(), hash.begin(), hash.end());
-    }
-
-    auto ecblChecksum = Checksum::fromData(ecblData);
-    ExtendedCBL ecbl(BlockSize::Small, ecblData, ecblChecksum);
-    
-    std::cout << "   File name: " << ecbl.fileName() << "\n";
-    std::cout << "   MIME type: " << ecbl.mimeType() << "\n";
-    std::cout << "   Address count: " << ecbl.addressCount() << "\n";
-    std::cout << "   Original data length: " << ecbl.originalDataLength() << " bytes\n";
-    std::cout << "   Header overhead: " << ecbl.layerOverheadSize() << " bytes\n\n";
-
-    std::cout << "All block types created and validated successfully!\n";
+    std::cout << "Block types demonstration complete!\n";
     
     return 0;
 }

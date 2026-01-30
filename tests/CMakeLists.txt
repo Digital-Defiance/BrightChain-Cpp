@@ -18,6 +18,27 @@ add_executable(brightchain_tests
     block_types_test.cpp
     cbl_cross_compat_test.cpp
     cbl_bidirectional_test.cpp
+    member_test.cpp
+    paillier_test.cpp
+    paillier_comprehensive_test.cpp
+    paillier_cross_platform_test.cpp
+    paillier_bigint_test.cpp
+    paillier_json_test.cpp
+    paillier_random_factor_test.cpp
+    paillier_full_cross_platform_test.cpp
+    # Voting library tests
+    vote_encoder_test.cpp
+    poll_test.cpp
+    poll_tallier_test.cpp
+    audit_log_test.cpp
+    poll_factory_test.cpp
+    event_logger_test.cpp
+    bulletin_board_test.cpp
+    hierarchical_aggregator_test.cpp
+    member_json_test.cpp
+    member_json_cross_platform_test.cpp
+    mnemonic_voting_cross_platform_test.cpp
+    drbg_test.cpp
 )
 
 target_link_libraries(brightchain_tests
