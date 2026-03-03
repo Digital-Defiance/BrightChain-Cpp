@@ -39,6 +39,19 @@ add_executable(brightchain_tests
     member_json_cross_platform_test.cpp
     mnemonic_voting_cross_platform_test.cpp
     drbg_test.cpp
+    # Document database tests
+    document_test.cpp
+    head_registry_test.cpp
+    head_registry_property_test.cpp
+    store_lock_test.cpp
+    query_engine_test.cpp
+    update_engine_test.cpp
+    collection_test.cpp
+    collection_property_test.cpp
+    collection_meta_property_test.cpp
+    brightchain_db_test.cpp
+    db_cross_compat_test.cpp
+    db_e2e_cpp_test.cpp
 )
 
 target_link_libraries(brightchain_tests

@@ -2,13 +2,13 @@
   "shamir": [
     {
       "bits": 3,
-      "secret": "b69e0e1ae77aa000",
+      "secret": "03495abe6e9f3000",
       "shares": [
-        "311ae069e1fff54b45723b5b76bb7c605cc",
-        "320a2dfd8439a52b539c787a2a1ed6b5cfd",
-        "3310cd9465c6506016f52ac1bd0bdd7f931",
-        "3418e5c0fabe2705c1bca35ee2ca0e788fc",
-        "350205a91b41d24e84d5f1e575df05b2d30"
+        "311ff23851a0fe403bee83dbcfbfdd79bb0",
+        "321333332494205e1a84f58d8b2662328f7",
+        "330cc10b7534de1e217a42c3ef7f56b8347",
+        "341c3b41058f7932bf7ce78b7c62b36b21c",
+        "3503c979542f8772848250c5183b87e19ac"
       ],
       "threshold": 3,
       "description": "Random 3-bit secret"
@@ -17,11 +17,11 @@
       "bits": 3,
       "secret": "0000000000000000",
       "shares": [
-        "311a5c61eda2ba8fb58455e334f7626204c",
-        "3202d8c3d50e2233aa78f2ea74de6f89e08",
-        "331884a238ac98bc1feca70940290debe44",
-        "340678ba196fb9232bff47305a023e488ef",
-        "351c24dbf4cd03ac9e6b12d36ef55c2a8a3"
+        "3116a96a5c6f1fb201468e8d5704beed367",
+        "3216839dc981eca3fcd0e5e9f74294330d7",
+        "33002af795eef311fd866b64a0462ade3b0",
+        "341fe3ad9494f7fdc5616ea826ec3b75746",
+        "35094ac7c8fbe84fc437e02571e88598421"
       ],
       "threshold": 3,
       "description": "All zeros 3-bit"
@@ -30,11 +30,11 @@
       "bits": 3,
       "secret": "fffffffffffffff7",
       "shares": [
-        "310c29a9988dd6576fe4b3512934177be41",
-        "3210a1063b68362dc83e126941a4c6624c1",
-        "331c88afa3e5e07aa7c55ec7976f2ee6577",
-        "34031f212ca8a3144ea4aef96c2ffaf38ec",
-        "350f3688b4257543215fe257bae4127795a"
+        "31063e3fdc0012a3b509369995e0ad15864",
+        "321a2dd0911ae815cf2fbf9d104191c2d47",
+        "331c13ef4d1afab67a3976fb7a5ec328ad4",
+        "3405212a9fe66e8d84be24c9458590ba852",
+        "35031f1543e67c2e31a8edaf2f9ac250fc1"
       ],
       "threshold": 3,
       "description": "All ones 3-bit"
@@ -43,24 +43,24 @@
       "bits": 3,
       "secret": "0123456789abcdef",
       "shares": [
-        "3105c612533dc767d91327a1501f8d042aa",
-        "32060492302c9e3e65e42ce53441ef9fc7f",
-        "3303c28063115959bce719703226f82733a",
-        "341475c908a7487fe0c0b139781fef85853",
-        "3511b3db5b9a8f1839c384ac7e78f83d716"
+        "311076f56f362d1a28adba07c8d0e07cdef",
+        "32136916aca79d4e5846f3a944637ca83bc",
+        "33031fe3c391b05470fb5b9adacb06683bc",
+        "34090036d3a8afe1543e0a8740ea91c1456",
+        "351976c3bc9e82fb7c83a2b4de42eb01456"
       ],
       "threshold": 3,
       "description": "Sequential 3-bit"
     },
     {
       "bits": 4,
-      "secret": "e2744da048db7000",
+      "secret": "0ef0b14e18790000",
       "shares": [
-        "4159447bacd749bd5a69ea77e6cb9bef3e",
-        "42635f68bc454fc3bce6a5dffe521d2f90",
-        "433a1b131092067ee76d3be5b8d15db0ae",
-        "449eb2a20490d0981e2ebbce17ea5ce589",
-        "45c7f6d9a847992545a525f451691c7ab7"
+        "4119be8daed2aaf20dce29500c19d31268",
+        "423fe722075020f1d068430438cea6bd25",
+        "432659afa9828a03dca89ae57acf0caf4d",
+        "4420580ef8f33f558dd92ed43a97027b91",
+        "4539e683562195a78119f7357896a869f9"
       ],
       "threshold": 3,
       "description": "Random 4-bit secret"
@@ -69,11 +69,11 @@
       "bits": 4,
       "secret": "0000000000000000",
       "shares": [
-        "417c379b5ebcaff9383993222392eae9af",
-        "4243215e913460c09ae0ca23ed05ea4ed0",
-        "433f16c5cf88cf39a3d95901ce9700a77f",
-        "44607b95dfd181f48a94a2f9134eb62671",
-        "451c4c0e816d2e0db3ad31db30dc5ccfde"
+        "410ea02ce9ed414831f0c02fa26a5e8ee7",
+        "426a1e5a8770ea0214fe9770c723e8d109",
+        "4364be766e9dab4a240e575f6549b65fee",
+        "447092e3c5824160dc5291211295cc4f9e",
+        "457e32cf2c6f0028eca2510eb0ff92c179"
       ],
       "threshold": 3,
       "description": "All zeros 4-bit"
@@ -82,11 +82,11 @@
       "bits": 4,
       "secret": "ffffffffffffffff",
       "shares": [
-        "41a2ca39f91b96cb978878349211ce25bf",
-        "423e635bf9cfe5e7ab5a5e8da0b4e492de",
-        "439ca96200d4732c3d2dd946cd5ad5489e",
-        "4451d56b57636886ddbfa44479d928a859",
-        "45f31f52ae78fe4d4bc8238f1437197219"
+        "416160de37ec745ea38b1f14dc8f638983",
+        "4295d28addc460906e49f23dffe1c7dd3e",
+        "43f4b254ea2814cecc3d12d6dc915bab42",
+        "4465dc703571a6d986de6784c44d10e6c3",
+        "4504bcae029dd28724aa876fe73d8c90bf"
       ],
       "threshold": 3,
       "description": "All ones 4-bit"
@@ -95,24 +95,24 @@
       "bits": 4,
       "secret": "0123456789abcdef",
       "shares": [
-        "415dc711413d9e855dd0dc97ff8b27249b",
-        "42531cde41a67b19e5fce92ba7ae5464e3",
-        "430edbcf009be59cb92d16f93facd88d97",
-        "4438c30ade2556adc061db14cb4b25ca37",
-        "4565041b9f18c8289cb024c65349a92343"
+        "41aee4c1634ab3e7c5d0033250d6716b81",
+        "42ca34ff79c2d8899bbfc453dc7ad84cfa",
+        "4364d03e1a886b6e5f6ee424eb2502ea94",
+        "44103dec4883fece9edb32ff25229e6edb",
+        "45bed92d2bc94d295a0a1288127d44c8b5"
       ],
       "threshold": 3,
       "description": "Sequential 4-bit"
     },
     {
       "bits": 5,
-      "secret": "e1f24d6a30493000",
+      "secret": "e6d8c3d6c25df000",
       "shares": [
-        "5010087d0b774aadf553e3801c1c7db74753",
-        "5022eac52deab87d208a7b91de204e823b11",
-        "5032e2b8269df2d0d5d879e38f56037c4c42",
-        "5043b369ac7716639d7828f6940b4aa94e85",
-        "5053bb14a7005cce682a2a84c57d075739d6"
+        "5012d8f2b23da3c30d0c1e798f49af88596f",
+        "502106d15f910ddab30849cb5cfeec847873",
+        "5033de23edacae19be05b16a10618151d11c",
+        "50428ae92245014e9f1abf93c4423bd62b12",
+        "5050521b9078a28d9217473288dd5603827d"
       ],
       "threshold": 3,
       "description": "Random 5-bit secret"
@@ -121,11 +121,11 @@
       "bits": 5,
       "secret": "0000000000000000",
       "shares": [
-        "5010325876c67835365e6d9c3e33ae50f95b",
-        "50235dcd7f1098f4c94115de29a8cbc0388c",
-        "50336f9509d6e0c1ff1e7842179b6590c1d7",
-        "5043c0765c64ff4e4a2f7c8038256ef4284b",
-        "5053f22e2aa2877b7c70111c0616c0a4d110"
+        "501237239c4c4a8e12f65c28c8ed68f3c5a6",
+        "5022e5e65120d1fa09c1a4c65e1f3fb7e15f",
+        "5030d2c5cd6c9b741b36f8ee96f2574424f9",
+        "50403738d46c4ec9b00d06cec4cef27d1bdd",
+        "5052001b48200447a2fa5ae60c239a8ede7b"
       ],
       "threshold": 3,
       "description": "All zeros 5-bit"
@@ -134,11 +134,11 @@
       "bits": 5,
       "secret": "ffffffffffffff1f",
       "shares": [
-        "501256e53a88dd934b6870f77da3e0afcc1f",
-        "502325b22c66c6514a6327b7b4907ca75ed2",
-        "5031735716ee1bc2010aa8bf36cc63f76dd2",
-        "50431f0111eb81858d30adb2d0315d7b14f4",
-        "505149e42b635c16c65922ba526d422b27f4"
+        "5011461142cd959757119d71bfa38d36a772",
+        "50215d3f77950680d29fa3ca2e75c7e41dfe",
+        "50301b2e35589317858fc1446e29b52d4593",
+        "50407112713faf09609b44335625976313be",
+        "5051370333f23a9e378b26bd1679e5aa4bd3"
       ],
       "threshold": 3,
       "description": "All ones 5-bit"
@@ -147,24 +147,24 @@
       "bits": 5,
       "secret": "0123456789abcdef",
       "shares": [
-        "5013c1749c29dc6dc3d932d71f21218d3f52",
-        "5022236ec7af46c1e5970e640093acaa49e4",
-        "5031e21a5b869aac264f3d905ad5048cbb59",
-        "504042a52a610061e32088cb9547ec5d3ac3",
-        "505383d1b648dc0c20f8bb3fcf01447bc87e"
+        "5012908e06d5e473a8ec340e3d62e4405f44",
+        "50207e4e2381cd406b747d96f40d3d8176fa",
+        "5032eec025542933c39948bb8c08506ae451",
+        "50437a7923dc4c2c94ee1244723fa7d7dd8c",
+        "5051eaf72509a85f3c0327690a3aca3c4f27"
       ],
       "threshold": 3,
       "description": "Sequential 5-bit"
     },
     {
       "bits": 6,
-      "secret": "fe840dfa04199000",
+      "secret": "1ee0e1ed91ceb000",
       "shares": [
-        "6017b41753cd0b92c9c030bda7132f16ae50",
-        "602ad1262f433551824be332f594855a3262",
-        "603d65317c8e3ec34b8a2d0b5f7dae550c32",
-        "60428f7abce1fbc3c79790777b4795f51dcf",
-        "60553b6def2cf0510e565e4ed1aebefa239f"
+        "60189d415e99fa3260d7faffe859e1931297",
+        "60272dff268edd5d763fe0fdd08e1d49e0c5",
+        "603fb0be7817276f16e904e2d93a6d144252",
+        "6045c60841a9369cfe009ad0034733386660",
+        "605d5b491f30ccae9ed67ecf0af34365c4f7"
       ],
       "threshold": 3,
       "description": "Random 6-bit secret"
@@ -173,11 +173,11 @@
       "bits": 6,
       "secret": "0000000000000000",
       "shares": [
-        "601d52472ddddfa2bf6702157be371af22f1",
-        "602d3aec03cafb947e1b3bfa1007696f1675",
-        "603068ab2e172436c17d39ef6be418c03484",
-        "60470c49a411c09db3653934b799b13ba3ba",
-        "605a5e0e89cc1f3f0c033b21cc7ac094814b"
+        "601b2fe5e1ba46fc4348ae4e67d56e3d3edb",
+        "60290a0ca13aebde65282be746bc798906bf",
+        "603225e94080ad22266185a9216917b43864",
+        "604c8b2c9a0353f483aaa9a4a1e3afcbd399",
+        "6057a4c97bb91508c0e307eac636c1f6ed42"
       ],
       "threshold": 3,
       "description": "All zeros 6-bit"
@@ -186,11 +186,11 @@
       "bits": 6,
       "secret": "ffffffffffffff3f",
       "shares": [
-        "6018b4abf04bd1aa013acb3794bced3a4402",
-        "602734266b1375502d8fd11e2454c9226e20",
-        "603f808d9b58a4fa2cb4e5d64f17dbe7d51d",
-        "6045d4a609729e83e3f04f7f60fc5b2772df",
-        "605d600df9394f29e2cb7bb70bbf49e2c9e2"
+        "601149c9e2f6ba24dc883e3287a51a7a6e21",
+        "60214cfa96cf4b6341d011a815ea47fcada0",
+        "603005337439f1479d59d0656db0a2793cbe",
+        "604da360609842ec238bd5e54147cdeca80b",
+        "605ceaa9826ef8c8ff021428391d28693915"
       ],
       "threshold": 3,
       "description": "All ones 6-bit"
@@ -199,24 +199,24 @@
       "bits": 6,
       "secret": "0123456789abcdef",
       "shares": [
-        "6018f66b34d9e5a853637335f8ae9bfd85d8",
-        "6025c5b0f069b41c72b22470741c3cf27869",
-        "603d33dbc4b051b421d05666c9d52ea4305e",
-        "604964e3063ea93934a0eebc3824e7cc9309",
-        "6051928832e74c9167c29caa85edf59adb3e"
+        "6018f448a982cb3093dc0e65d5a1342ad28e",
+        "602a0254957ac35c9449f9674f18344f1bcf",
+        "6032f61c3cf8086c0794f621dfde89ce04ae",
+        "604866ae504af2aea577498bc62260d9c16e",
+        "605092e6f9c8399e36aa46cd56e4dd58de0f"
       ],
       "threshold": 3,
       "description": "Sequential 6-bit"
     },
     {
       "bits": 7,
-      "secret": "f7cf23d172d98000",
+      "secret": "3e94038d58bb5000",
       "shares": [
-        "70114fbacf2964fd1bc80387ddef15bcc3b20",
-        "70201c0835e0529c0f2213a4cf68d62b84f39",
-        "703153b2fac9366114ea0f5fe0bad4badf419",
-        "704015bec40a0ca9f4b0c284635284a12fe93",
-        "70515a040b236854ef78de7f4c808630745b3"
+        "70114ea6ccbe214f22f32bf3515ad1c6400d4",
+        "7021f17430cd9ec1b94b3e5672ad81d4fac35",
+        "7030bfd2fc73bf8e9bb8064c63cf85990fce1",
+        "7040664656df88f78c33469aa75108258dc12",
+        "705128e09a61a9b8aec07e80b6330c6878cc6"
       ],
       "threshold": 3,
       "description": "Random 7-bit secret"
@@ -225,11 +225,11 @@
       "bits": 7,
       "secret": "0000000000000000",
       "shares": [
-        "70111bd587474c77c5b44830f02fd078969f8",
-        "70207586062df086ad5276242155b0522050c",
-        "70316e53816abcf168e62e14d17a602ab6cf4",
-        "7041cbd09e1681a5d67fbd2fa4872c20795e1",
-        "7050d0051951cdd213cbe51f54a8fc58efc19"
+        "7011657cbe7abe4483efc244a0bda5981d3c1",
+        "7020b42dc2a4a1097cdcd60293c00692c20c0",
+        "7031d1517cde1f4dff330446337da30adf301",
+        "7040ab019dedb01a07805e0acde8babe6de81",
+        "7051ce7d23970e5e846f8c4e6d551f2670d40"
       ],
       "threshold": 3,
       "description": "All zeros 7-bit"
@@ -238,11 +238,11 @@
       "bits": 7,
       "secret": "ffffffffffffff7f",
       "shares": [
-        "7011493945b1528ac88239deb34d2a3441012",
-        "70202398510d74f637e4b3061b52149a43814",
-        "70316aa114bc267cff66952757e0c151fd779",
-        "7040bc93dbc66f62e05a8c21018124e5a52e1",
-        "7051f5aa9e773de828d8aa004d33f12e1bd8c"
+        "70105492011ae0ffabdb1ff785b4e6cd340e1",
+        "702184324ebf61e45094d9ce17eba3a48b4dd",
+        "7031d0a04fa5811bfb4fd9c66da0ba9640b43",
+        "7041ac3ddf1685afa992cb393f9ff9b287ec3",
+        "7051f8afde0c65500249cb3145d4e0804c15d"
       ],
       "threshold": 3,
       "description": "All ones 7-bit"
@@ -251,24 +251,24 @@
       "bits": 7,
       "secret": "0123456789abcdef",
       "shares": [
-        "701124c530020e2af9de9e7e4bde0df117068",
-        "7021ae3bf3ba7e4895dd373d5135ae80cb571",
-        "70308afec3b870626c03b9512ebddbeb608f6",
-        "7040e2a169cc36e3a016f113f59c289cef513",
-        "7051c66459ce38c959c87f7f8a145df744894"
+        "701064c3637771ac14642d487bcfbed70f0ba",
+        "70200a5cb7b2641ad740c3661fb3621b913bc",
+        "70306e9fd4c515b6c324fe3c502aa45622ee9",
+        "70411fe0aad513ba58bb3179714418fdea4a7",
+        "70517b23c9a262164cdf0c233edddeb0599f2"
       ],
       "threshold": 3,
       "description": "Sequential 7-bit"
     },
     {
       "bits": 8,
-      "secret": "08be4203ead16000",
+      "secret": "ea315d948b5f8000",
       "shares": [
-        "801d41c2b6d098d1307c637a81fdfb1aaed",
-        "802fcb5af51ae2836aa2174088ef958c7c8",
-        "80328a9843ca7a525aceffde292cc380d25",
-        "804dc7980b48bec2cecc004e0ea35e78bb1",
-        "8050865abd982613fea0e8d0af60087415c"
+        "801faa98898df28a62f877e5d84292960b4",
+        "80209472f5d9a4c18be34dab2c3dcbe5260",
+        "803f3eea7c54564be905995b2d37ec8b2d4",
+        "804b5aed667cde809c95b3305fb1db40594",
+        "8054f075eff12c0afe7367c05ebbfc2e520"
       ],
       "threshold": 3,
       "description": "Random 8-bit secret"
@@ -277,11 +277,11 @@
       "bits": 8,
       "secret": "0000000000000000",
       "shares": [
-        "801a134c2336819e70f302bf5f8b9f334ff",
-        "802917a4f45326798a6dc307ac8fdbf037d",
-        "803304e8d765a7e7fa8ec1b8f30444c3782",
-        "80420bce106cb871c846fe5fa19956eb7b8",
-        "80581882335a39efb8a5fce0fe12c9d8347"
+        "8012e64cafb1c8bc1a4b8441a25f8887961",
+        "8026707c5ec4d85a2f395e6daab816f594b",
+        "80349630f17510e63562da2c08e79e7202a",
+        "8042215bad95315ad56f07436e8b24b2488",
+        "8050c7170224f9e6cf348302ccd4ac35de9"
       ],
       "threshold": 3,
       "description": "All zeros 8-bit"
@@ -290,11 +290,11 @@
       "bits": 8,
       "secret": "ffffffffffffffff",
       "shares": [
-        "801014ba3d9fe924c161ebad18e18104af0",
-        "8028a989469ff17e260acb5daff0af4ba4f",
-        "8038bd337b00185ae774df0f48eed1b0f40",
-        "80413152eed9b962ce2534c4c5090eebd00",
-        "805125e8d34650460f5b20962217701080f"
+        "8010d6885f6fb69a8e5cc968261ec7441d3",
+        "802d5c437bf657d65e5faf32de20093b777",
+        "803d8acb2499e14cd01c99a507c1318095b",
+        "804acc5ee46c87c6a1064b8e6355fa6cb95",
+        "805a1ad6bb03315c2f457d19bab4c2d75b9"
       ],
       "threshold": 3,
       "description": "All ones 8-bit"
@@ -303,24 +303,24 @@
       "bits": 8,
       "secret": "0123456789abcdef",
       "shares": [
-        "801d4c63fb9c7a7dc29e1808a5f60166c95",
-        "802972dc66d8040d85dd9c99bd3768fe42c",
-        "80343ebf9d447e70475396a54eb9f324556",
-        "804bb904bd251cc4489b8148d25aaf25aa8",
-        "8056f56746b966b98a158b7421d434ffbd2"
+        "801b3e0284e98817402d34626e83dd9f8b7",
+        "8024a296cf4a7b6fd0a37ca03fdb508a662",
+        "803f9c944ba3f378909e5af6072017a933a",
+        "80450a5284841efb3236b60f310c8f11f1c",
+        "805e3450006d96ec720b905909f7c832a44"
       ],
       "threshold": 3,
       "description": "Sequential 8-bit"
     },
     {
       "bits": 9,
-      "secret": "d6db0853542c7000",
+      "secret": "3bbf31de340b5000",
       "shares": [
-        "900121a5e8696cb9b8d77e7677d4ed7883af40",
-        "90025658fa0ffaef473cad8bc99bb4917798ba",
-        "900377fd12669656ffebd22b65470abdd847fa",
-        "90047df7ff0862fe763015989a81d1a7425bd8",
-        "90055c5217610e47cee76a38365d6f8bed8498"
+        "900157a5e2dd4f413f6ec4a7beada9c6691a78",
+        "900207980a4b5c73e16deaf777df2bc667b6cb",
+        "9003503de8961332de032f6b76435c3405fcb3",
+        "90043875aa133a31b078767981721c82afdd7a",
+        "90056fd048ce75708f16b3e580ee6b70cd9702"
       ],
       "threshold": 3,
       "description": "Random 9-bit secret"
@@ -329,11 +329,11 @@
       "bits": 9,
       "secret": "0000000000000000",
       "shares": [
-        "900159009684028353c31deb445f5bdc6a445a",
-        "90027e307c81c6df9e27ef928b922f7e7fe080",
-        "90032730ea05c45ccde4f379cfcd74a215a4da",
-        "900451e1187592cb5cbd932c9b120e6fd2add0",
-        "900508e18ef190480f7e8fc7df4d55b3b8e98a"
+        "90016fc0559b3c63634b77b0e16bc07eb5960d",
+        "90021632ea8f605fb5b03e0a475ab763e530ae",
+        "900379f2bf145c3cd6fb48baa631771d50a6a3",
+        "900413a817c93bda218f2eb75001a00c26559d",
+        "90057c68425207b942c45807b16a607293c390"
       ],
       "threshold": 3,
       "description": "All zeros 9-bit"
@@ -342,11 +342,11 @@
       "bits": 9,
       "secret": "fffffffffffff1ff",
       "shares": [
-        "900118b729952a9ee27e445195f8451d158742",
-        "9002519e9bcf3d1148f141dd402e3d21580b0c",
-        "90034929b25a178faa8f04732a2987c3b27db1",
-        "900429b0f40bd2c429d6b44e2184d48764900e",
-        "90053107dd9ef85acba8f1e04b836e658ee6b3"
+        "90013a12d3d658e0cdf60b95e1d0410bd9eceb",
+        "900250927ca2bf6b65dad260a4e33130870b18",
+        "90036a80af74e78ba82cd80abacc8fc4a1160c",
+        "9004333d332cccf95f39a9f5d0a9ec64558558",
+        "9005092fe0fa941992cfa39fce86529073984c"
       ],
       "threshold": 3,
       "description": "All ones 9-bit"
@@ -355,24 +355,24 @@
       "bits": 9,
       "secret": "0123456789abcdef",
       "shares": [
-        "90013d4375090badc5582d1c3f9ac12f4590c7",
-        "9002212f83d79671e7e711679e6a125f388966",
-        "90031c6cf6de9ddc22bf3d7a82b5b4f9d6d44e",
-        "900424bc65bb880630e509b2c9bd2f78ba79cc",
-        "900519ff10b283abf5bd25afd56289de5424e4"
+        "900135367bc539bc58c612f3493897adc2410d",
+        "900234981280967c8644de9f91479c1bad8c31",
+        "900301ae6945afc0de82cd6dfb3a6c3fc400d3",
+        "90041badf45bb025d59b4d49d2a3be77a62c2a",
+        "90052e9b8f9e89998d5d5ebbb8de4e53cfa0c8"
       ],
       "threshold": 3,
       "description": "Sequential 9-bit"
     },
     {
       "bits": 10,
-      "secret": "4604af30c314c000",
+      "secret": "d0a8e8024dd90000",
       "shares": [
-        "A0011d469a43896964adc3413cf4ce32bd7d7",
-        "A0022a1aa0abb001bfcc7ccd684d3125d15ee",
-        "A003375c3ae83968db61abec1e4af32620239",
-        "A004166b01c6e5cc75cbc780f789a27c80aea",
-        "A0050b2d9b856ca5116610a1818e607f71d3d"
+        "A0011e66883fe1866df6566abaa5fec3a144d",
+        "A0022faf47509101c57574a4ea461063854be",
+        "A00331c9cf6f7087a8833fc4de63ca7db40f3",
+        "A00412c7fe0a633780651eef37da338d67dec",
+        "A0050ca1763582b1ed93558f03ffe993569a1"
       ],
       "threshold": 3,
       "description": "Random 10-bit secret"
@@ -381,11 +381,11 @@
       "bits": 10,
       "secret": "0000000000000000",
       "shares": [
-        "A00107bbcec0dcd561363b806d53072dd3ee0",
-        "A00221f7b796d7c8655c8a30f6e2010681e8c",
-        "A003264c79560b1d046aa1b09bb1062b5206c",
-        "A004381f4b4b1f9b664e30a99f34074391c1e",
-        "A0053fa4858bc34e07781b29f267006e422fe"
+        "A0011a8ee5dd718a4067b3a2154a72fda7914",
+        "A0023f77908502fc7e4e254c67d5d7ddb9fb7",
+        "A00325f9755873763e2986ee729fa5201e6a3",
+        "A00417b699ed845a96c192b0ba7feb19a5112",
+        "A0050d387c30f5d0d6a63112af3599e402806"
       ],
       "threshold": 3,
       "description": "All zeros 10-bit"
@@ -394,11 +394,11 @@
       "bits": 10,
       "secret": "fffffffffffff3ff",
       "shares": [
-        "A0010480db287305ca5d35697e35dd18a907c",
-        "A0020a3014f4c8e1a072c4b6da17f70210145",
-        "A0030eb0cfdcbbe46a2fee205bddd5e5462c6",
-        "A00418a6bb4e28ea73779cf6ac0e16e42d05f",
-        "A0051c2660665befb92ab6602dc434037b3dc"
+        "A0013c3ef44d669f69a5d10886ade35ec72fe",
+        "A00224c9400cb477656515b54051eb486369f",
+        "A00318f7b441d2e80cc0db423903f7e95b79e",
+        "A0043940b2408d88d2cc41f7766b094c720ac",
+        "A005057e460deb17bb698f000f3915ed4a1ad"
       ],
       "threshold": 3,
       "description": "All ones 10-bit"
@@ -407,24 +407,24 @@
       "bits": 10,
       "secret": "0123456789abcdef",
       "shares": [
-        "A00121d17c693f56b009d27ba8b889f7afa02",
-        "A00214a26f866302aba9c803338a680f2c3eb",
-        "A003357313ef5c541ba00a6aaf6499623f406",
-        "A00437968a4eb03b69dec23ec2092c9e42abb",
-        "A0051647f6278f6dd9d700575ee7ddf351d56"
+        "A001232f8cfd49cff2a7496baf7d2969b2b51",
+        "A00220a4c4230e954866a5eb6328034e2f9c8",
+        "A003038b48de475abac1fc92f80352bd21f76",
+        "A0041936232b6d8004314bcbdf5917f3a38e0",
+        "A0053a19afd6244ff69612b244724600ade5e"
       ],
       "threshold": 3,
       "description": "Sequential 10-bit"
     },
     {
       "bits": 12,
-      "secret": "7f0a21dfab9d8000",
+      "secret": "bd3dc0ac54d99000",
       "shares": [
-        "C0014d78998aa9375f7ff402dca3e01dbb368",
-        "C0028676cc1b6373a0c7ddb68c149a4f94d6b",
-        "C003cb0e5591ca44ffb83e44f2aa80ebf7e03",
-        "C0047b937f1a83de3c3e59e942c468af9d4cf",
-        "C00536ebe6902ae96341ba1b3c7a720bfe7a7"
+        "C00167d17a339880048ba32396df76a4399cf",
+        "C0022eccef834c4e51387663c31516f6040c6",
+        "C003491d95b0d4ce55b3ce9389c0a51fa4909",
+        "C004d751149d6c4ec79d5fe57959a8786eda0",
+        "C005b0806eaef4cec316e715338c1b91ce46f"
       ],
       "threshold": 3,
       "description": "Random 12-bit secret"
@@ -433,11 +433,11 @@
       "bits": 12,
       "secret": "0000000000000000",
       "shares": [
-        "C0017b3b277f991e86d2ec57c51e6c6257ae9",
-        "C00231797a34beb57ee19523393e5ead5ebf1",
-        "C0034a425d4b27abf8336974fc2032cf09118",
-        "C00471ffce487ea42132bd7ece27aead89e84",
-        "C0050ac4e937e7baa7e041290b39c2cfde46d"
+        "C0019823e1f2ca98ae13275e9b460208ca2a7",
+        "C00236906e9756c55a33b6cd6288834dc47b0",
+        "C003aeb38f659c5df4208193f9ce81450e517",
+        "C00462ae3ff12312b8e02f5bc41f14db22498",
+        "C005fa8dde03e98a16f318055f5916d3e863f"
       ],
       "threshold": 3,
       "description": "All zeros 12-bit"
@@ -446,11 +446,11 @@
       "bits": 12,
       "secret": "ffffffffffffffff",
       "shares": [
-        "C001b095a5d53b42ddc4948fb13ea2a9780b7",
-        "C0021f9592f694ce5064f26c16a1a58044713",
-        "C003af003723af8c8da0791c5860f8d6c385b",
-        "C004d410b18a21f814dedc15bf7fc70a0e69b",
-        "C0056485145f1abac91a5765f1be9a5c899d3"
+        "C0016a7ff1faaf88a29cc9f8010073ff12400",
+        "C0020743a40acbb7f4c59ddf558491b02e1c7",
+        "C0036d3c55f0643f56594bd8ab7b1db0c3a38",
+        "C0044f57e9f014be359a1a03b451eb88d752e",
+        "C0052528180abb369706cc044aae67883aed1"
       ],
       "threshold": 3,
       "description": "All ones 12-bit"
@@ -459,24 +459,24 @@
       "bits": 12,
       "secret": "0123456789abcdef",
       "shares": [
-        "C0019501ffc5b508f0027b5255c5df06a245d",
-        "C002a9af08577ed53e2676f5dc177a2c7842b",
-        "C0033caef792cbddce241db5bd84ddb066d99",
-        "C004465d6ec53ebe1f561c4179bd5a4d6d55e",
-        "C005d35c91008bb6ef547701182efdd173cec"
+        "C001b407666898905618ee34ffd701661f62f",
+        "C002453172669e2158f2470ff861c87a2d490",
+        "C003f136140e06b10eeab92933e0b1868ef50",
+        "C0042a6ce91981ac6dfb5e6d8155155d28507",
+        "C0059e6b8f71193c3be3a04b4ad46ca18bec7"
       ],
       "threshold": 3,
       "description": "Sequential 12-bit"
     },
     {
       "bits": 14,
-      "secret": "b1eb0f11cb3ac000",
+      "secret": "1ef174e6c8d55000",
       "shares": [
-        "E000154c5a15e57d3cc7753be7b3accdfea349a1",
-        "E0002e1beb207609ca0f0f191a1aac7caf80982b",
-        "E0003b57b1359374f6c87a234c420fa09a19118a",
-        "E0004e3aaa681c395dd980c0010bce977c741df2",
-        "E0005b76f07df944611ef5fa57536d4b49ed9453"
+        "E000128c01576e61b686193051569ca97de03f1c",
+        "E00020aab20f378842b46e56fc6efb0d2555e42d",
+        "E0003226b35859e9f4327767b3c9134290608b31",
+        "E0004795e6ccc3c43c79b83bfb8cf6e66c7c50df",
+        "E0005519e79bada58affa10ab42b1ea9d9493fc3"
       ],
       "threshold": 3,
       "description": "Random 14-bit secret"
@@ -485,11 +485,11 @@
       "bits": 14,
       "secret": "0000000000000000",
       "shares": [
-        "E0001036ad3f4fc53446e5113b1d8f00f4459f10",
-        "E00028ecc4fb10c493f21bee90bceedbbb0f608f",
-        "E00038da69c45f01a7b4fefeaba161db4f4aff9f",
-        "E00043c1f3651de2cf4b6fe19367fed658057ba2",
-        "E00053f75e5a5227fb0d8af1a87a71d6ac40e4b2"
+        "E000188c2ff3da39e4e94d6c70e492f135268e42",
+        "E0002ec595ae14fa6a87ee855e53583bd07890ed",
+        "E0003649ba5dcec38e6ea3e82eb7cacae55e1eaf",
+        "E00042c382d0a83a580a2cf3c3ccbb191832907e",
+        "E0005a4fad237203bce3619eb32829e82d141e3c"
       ],
       "threshold": 3,
       "description": "All zeros 14-bit"
@@ -498,11 +498,11 @@
       "bits": 14,
       "secret": "ffffffffffff3fff",
       "shares": [
-        "E00010236a118be7246c4d963573423299587e67",
-        "E0002f631da6135a5cf0a7ccbf75c91d662577cb",
-        "E0003f4077b798bd789cea5b75f974d000823653",
-        "E00042459df03640e151821079a5e3db9e188387",
-        "E0005266f7e1bda7c53dcf87b3295e16f8bfc21f"
+        "E0001172bd51a7422c6f9d163a9fe1ef0748a14f",
+        "E0002ce42531a83c5938834012f8de27afc5ed1f",
+        "E0003d9698600f7e75571e57d798c037577273af",
+        "E00041d9b482c960bf6fc8bbefec2ba1eaf6a469",
+        "E00050ab09d36e22930055ac2a8c35b112413ad9"
       ],
       "threshold": 3,
       "description": "All ones 14-bit"
@@ -511,24 +511,24 @@
       "bits": 14,
       "secret": "0123456789abcdef",
       "shares": [
-        "E00011d29afa23c8894980eb162dd4535cc09f53",
-        "E000257ce4c2179dea4080b45b6fd7c0bf474ac0",
-        "E00034ae7e3834556309005e4c6146f46a2c187c",
-        "E00041944d5c6fa4378f2e2eb4fc0b1114858abb",
-        "E0005046d7a64c6cbec6aec4a3f29a25c1eed807"
+        "E0001ba231400c551368a9dec7e229ee67212bf2",
+        "E0002c599733976ee9bcd161a3cc3c249952b658",
+        "E00037fba6739b3bfad478be650d50ad77d85045",
+        "E00044f1787b103eec1f973cfd4986a2efde244f",
+        "E0005f53493b1c6bff773ee33b88ea2b0154c252"
       ],
       "threshold": 3,
       "description": "Sequential 14-bit"
     },
     {
       "bits": 16,
-      "secret": "73461f7b4eadd000",
+      "secret": "6339e781ea045000",
       "shares": [
-        "G0001b1cef00f8ecf90644138961afd9528c2",
-        "G0002f414a69fde16403f5b9ea150bfae4632",
-        "G000345da569050d9d05a69e028310c96bef0",
-        "G0004b6cb578eb2e20334124bd04af1a46208",
-        "G00050705a7813c2d93512035592b429c9aca"
+        "G00017efc59c3e0b062e516c0c4a7f62abfaf",
+        "G0002c4fc1e3ad4026422d60fd57d81936b04",
+        "G0003ba0047f934b206c6a3f6f65b9dbd84ab",
+        "G00046dc58adefd154fb172455094722bb7a3",
+        "G00051339d31d1da52d5507bc73b26e05580c"
       ],
       "threshold": 3,
       "description": "Random 16-bit secret"
@@ -537,11 +537,11 @@
       "bits": 16,
       "secret": "0000000000000000",
       "shares": [
-        "G0001595df006985b01aec789a36e5dfac8bf",
-        "G0002693e6033428ea9b5c8178cbb35332709",
-        "G000330639035dad5a81a0f9e2fd568c9efb6",
-        "G0004bc1bc0744d65f8b68c8e300451209720",
-        "G0005e5463072d53ef9194b07936a0cda5f9f"
+        "G0001a37ce7bcf3d50a1a38b1b56958abe4b4",
+        "G000298e10468126429efcb88c155ae38701d",
+        "G00033b9de3d4e1b123f4f339743cf69394a9",
+        "G000449482453f333a4bd7ccf2c7521e50500",
+        "G0005ea34c3ef00e6aea6447e991c794ee1b4"
       ],
       "threshold": 3,
       "description": "All zeros 16-bit"
@@ -550,11 +550,11 @@
       "bits": 16,
       "secret": "ffffffffffffffff",
       "shares": [
-        "G0001a65d37c4872853b13200083ef3cbbd69",
-        "G0002e59e55a47ee2371d8b3a333c5affc3f7",
-        "G000343c36260f9ca64ad46c5c4fd56cb8161",
-        "G00046f6f43f83f952f93aa5aebe440286325",
-        "G0005c932743cb8bd7c2367a51c254c1c21b3"
+        "G00017ca5cf8247f058390511054f80fd88d9",
+        "G0002d16a44e41e215f722a5b27882fc4e274",
+        "G0003adcf8b6659d1074ad0b5dd3850c69552",
+        "G00040279e68b7b1c029cd5cefbd4e7580b82",
+        "G00057edc29093cec5aa42f200164985a7ca4"
       ],
       "threshold": 3,
       "description": "All ones 16-bit"
@@ -563,24 +563,24 @@
       "bits": 16,
       "secret": "0123456789abcdef",
       "shares": [
-        "G00013d81899af6de77f24712a9c42f81226b",
-        "G00026ef508a7cac6d3cc1b0e6b245ace3fe4",
-        "G00035374813d3c18a43f5d3f8787fce4d060",
-        "G00048a367fb608fd571a6c1fc53653669d6c",
-        "G0005b7b7f62cfe2320e92a2e2995f54c72e8"
+        "G0001a1894d5772aaf7d5d909a54f8f506d50",
+        "G00029dc1f42dac02fe93a58bde3e83030265",
+        "G00033c48b97adea809477da13e1685f8a2da",
+        "G0004402052567d5cb9541b1a1f45818369e8",
+        "G0005e1a91f010ff64e80c330ff6d8778c957"
       ],
       "threshold": 3,
       "description": "Sequential 16-bit"
     },
     {
       "bits": 18,
-      "secret": "7f13f17b7d00b000",
+      "secret": "fc931f02b7653000",
       "shares": [
-        "I00001ac89cbfb7c459009183ca3f00039678249a8",
-        "I000023520b697cca252c4b413b97385060eaa70a3",
-        "I0000399a97d6cb0e7c2cdac2e659074441428890b",
-        "I00004daa3e8ad99e312d31181054d4d048155fe58",
-        "I00005762a2356e5a682da09bcd9aebc469bd707f0"
+        "I000015350cd26f298b8ac2080131f366d2a841eea",
+        "I00002d9c16d87a21bd08481f885658910184432d2",
+        "I000038a91a0a150836828a1796ae9a07f85a51c38",
+        "I000044e018422a89dbe7a2119a08526f1b97249d5",
+        "I000051d5149045a0506d601984f090f9e2493673f"
       ],
       "threshold": 3,
       "description": "Random 18-bit secret"
@@ -589,11 +589,11 @@
       "bits": 18,
       "secret": "0000000000000000",
       "shares": [
-        "I000012dba090ac8098faf01df1eb233c623951b6c",
-        "I00002687f19a8e808cfd43642f38ead54efa5b825",
-        "I0000345c510a22001407b379ced3c9e92cc30a349",
-        "I000041cd21da4407d1d800779e0767ccb7c414bd7",
-        "I00005316814ae8874922f06a7fec44f0d5fd450bb"
+        "I00001025143d5b345f382413ebde022f048460ebe",
+        "I000027c97075ec1f71f94eb21f8f9388fb99c8dc8",
+        "I000037ec6448b72b2ec16aa1e45191a7ff1da8376",
+        "I0000419f1cd6b0e1d5568c93ef55789a3d65359dc",
+        "I000051ba08ebebd58a6ea880148b7ab539e155762"
       ],
       "threshold": 3,
       "description": "All zeros 18-bit"
@@ -602,11 +602,11 @@
       "bits": 18,
       "secret": "fffffffffff3ffff",
       "shares": [
-        "I00001fd2730b3b6e386561da8aa46472a7d9c4b59",
-        "I00002de5fae56bb0482df08ba184d4be03cb62e36",
-        "I0000323789ee50de7048915134df4f335bed99a90",
-        "I000042cd7e0619d0720722dd3365d8aa3670abeab",
-        "I00005d1f0d0d22be4a624307a63e43276e5650a0d"
+        "I00001b2bcde1f3cdaf3a941b1bc67e0910e2c4f26",
+        "I000029b09dfee724e5827c0cbcff31ef987750b2d",
+        "I0000329b501f14e94ab8e817b8c6b019776aabbf4",
+        "I00004cfe630984b71199a7d3f7e95446d61404347",
+        "I000057d5aee8777abea333c8f3d0d5b03909ff39e"
       ],
       "threshold": 3,
       "description": "All ones 18-bit"
@@ -615,24 +615,24 @@
       "bits": 18,
       "secret": "0123456789abcdef",
       "shares": [
-        "I000018b0e3433eae649d4636fb45a039295acb97d",
-        "I00002043376b11cdc5348d04386bc74b1f61b9243",
-        "I000038f3d4282f63a1a9cb32d33c53244ea1ce6d1",
-        "I0000440fc9630adf87511dffba9abdb2a698da845",
-        "I00005cbf2a203471e3cc5bc951cd29ddf758adcd7"
+        "I000017c001d6c94f567225b309b94534dcd08d0a6",
+        "I00002dabe1a063855de3e845a4ebe2aa53eec7b4c",
+        "I00003a6be076aaca0b91cdf6bd4093c8f7a4f6605",
+        "I000043f8df774c65775957b5674149bba1dde90f1",
+        "I00005438dea1852a212b72067eea38d90597d8db8"
       ],
       "threshold": 3,
       "description": "Sequential 18-bit"
     },
     {
       "bits": 20,
-      "secret": "f83a0de8dfcbb000",
+      "secret": "a6887e7245923000",
       "shares": [
-        "K00001fb20b7ff46f4a057f87cbc9c8c4d7e0cafe",
-        "K00002f5ed863d2939072ed578e23d943efdc2826",
-        "K000030ecd31c26fcda7792d1bdd01c6fe7f752d8",
-        "K00004e56a5b74d43313b93c5c3f0dd723f813700",
-        "K000051e4aec8b92c7b3eec43f003185e37aa4dfe"
+        "K00001f90d7bcb0bf7edc42c9ada0e6bad9b65b89",
+        "K000020b4c49be93f57aef1605eac58e25af0dc80",
+        "K00003f24132759802972b3a85584c02ac6d4b709",
+        "K00004f3c1fbdf048072931058f145c56e50f075a",
+        "K000050acc80140f779f573cd843cc49e792b6cd3"
       ],
       "threshold": 3,
       "description": "Random 20-bit secret"
@@ -641,11 +641,11 @@
       "bits": 20,
       "secret": "0000000000000000",
       "shares": [
-        "K000018650ecf7d83bfc78816cc753b4d668408fa",
-        "K00002e5bca83f20d96d9aa467891857b96687b8e",
-        "K0000363ec44c8f8e291e2251b4e4be36f0ec7374",
-        "K000046f0fa73c2d088f5bd2fd0cceb7240f15efd",
-        "K00005e95f4bcbf53373235381cb9d03f26755607"
+        "K00001e1d5e133ad030b4967df996352615d8b126",
+        "K00002c1609e55dd1b749d12a02002ff1a487fc09",
+        "K0000320b57f6670187fd4756fb961ad7b15f4d2f",
+        "K0000489eebc61b443616551fe0b16e157435812b",
+        "K00005683b5d5219406a2c36319275b3361ed300d"
       ],
       "threshold": 3,
       "description": "All zeros 20-bit"
@@ -654,11 +654,11 @@
       "bits": 20,
       "secret": "ffffffffffffffff",
       "shares": [
-        "K00001cecdb433a0f71a5329dc2dbb17c34576a46",
-        "K00002eebbd41965425122ed641a017377c514fde",
-        "K000032076602ac5b54b71c4a7c8459b4b7f9da67",
-        "K0000411f729ca45353727211431ddb52a85cf2c7",
-        "K00005df3a9df9e5c22d7408d7e3995d163f4677e"
+        "K00001f3328cb0dc9cfb50e03973405b8c8fbd54c",
+        "K000025e4c6f14f32496ea19f3508e6f3248f2c61",
+        "K00003ad7ee3a42fb86dbaf9d5dc31cb4138b06d2",
+        "K000045c3e27fcee3cae8b555c79246ec9dfc4331",
+        "K00005af0cab4c32a055dbb57af59bcabaaf86982"
       ],
       "threshold": 3,
       "description": "All ones 20-bit"
@@ -667,11 +667,11 @@
       "bits": 20,
       "secret": "0123456789abcdef",
       "shares": [
-        "K000015892232cf625e4ede5a593c76c11e128285",
-        "K000026381544c976455235898f871d58aca34420",
-        "K000033b1377606141b1cebd2d7982efe3b1a0b4a",
-        "K000048d9750ccc276d9c4febe6033bd1e8f28222",
-        "K00005d50573e034533d291b0be1c08777f4bcd48"
+        "K00001e902d005cc7f0fe479205b176a9d73aaab0",
+        "K00002b3dafbc71091cab5eb7c790419c53f8c6ce",
+        "K000035ad82bc2dceec551924c30272520d69a191",
+        "K00004e0cae8bc1b9cc0afb2e3218de0da28acdd1",
+        "K0000509c838b9d7e3cf4bcbd368aedc3fc1baa8e"
       ],
       "threshold": 3,
       "description": "Sequential 20-bit"

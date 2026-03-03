@@ -7,8 +7,11 @@ using namespace brightchain;
 class DiskBlockStoreTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        testPath = std::filesystem::temp_directory_path() / "brightchain_test";
-        std::filesystem::remove_all(testPath);
+        auto tmpl = (std::filesystem::temp_directory_path() / "brightchain_test_XXXXXX").string();
+        std::vector<char> buf(tmpl.begin(), tmpl.end());
+        buf.push_back('\0');
+        ASSERT_NE(mkdtemp(buf.data()), nullptr) << "mkdtemp failed";
+        testPath = std::string(buf.data());
     }
 
     void TearDown() override {

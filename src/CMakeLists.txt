@@ -24,6 +24,14 @@ add_library(brightchain
     event_logger.cpp
     bulletin_board.cpp
     hierarchical_aggregator.cpp
+    # Document database
+    document.cpp
+    head_registry.cpp
+    store_lock.cpp
+    query_engine.cpp
+    update_engine.cpp
+    collection.cpp
+    brightchain_db.cpp
     # Trezor-crypto BIP39
     ${CMAKE_SOURCE_DIR}/external/trezor-crypto/bip39.c
     ${CMAKE_SOURCE_DIR}/external/trezor-crypto/bip32.c

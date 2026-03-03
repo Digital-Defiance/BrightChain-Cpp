@@ -1,0 +1,302 @@
+{
+  "description": "Cross-platform test vectors for BrightChain document database",
+  "timestamp": "2026-03-03T04:37:54.774Z",
+  "documentVectors": [
+    {
+      "description": "Document with _id=\"abc123\"",
+      "document": {
+        "_id": "abc123",
+        "name": "Alice",
+        "age": 30
+      },
+      "serializedJson": "{\"_id\":\"abc123\",\"name\":\"Alice\",\"age\":30}",
+      "serializedHex": "7b225f6964223a22616263313233222c226e616d65223a22416c696365222c22616765223a33307d",
+      "blockId": "5c5d349c61517f40a0173844fbdc7b38e285c8403b2ac54e867a9cd12006cc4d9ace29ef2f97bbca57cf73edb516c25d088b75e8fabf3cb86a389cafafb9b8c1"
+    },
+    {
+      "description": "Document with _id=\"def456\"",
+      "document": {
+        "_id": "def456",
+        "name": "Bob",
+        "age": 25,
+        "tags": [
+          "admin",
+          "user"
+        ]
+      },
+      "serializedJson": "{\"_id\":\"def456\",\"name\":\"Bob\",\"age\":25,\"tags\":[\"admin\",\"user\"]}",
+      "serializedHex": "7b225f6964223a22646566343536222c226e616d65223a22426f62222c22616765223a32352c2274616773223a5b2261646d696e222c2275736572225d7d",
+      "blockId": "1df36b5f0cb80c45aabe2bd4ec527f0cd3c07ac22dc71afd859c969b242ca9900f998dc1b3358a7b9042843a7bdfd2698f540cf56114d37dc92e4f6bce984120"
+    },
+    {
+      "description": "Document with _id=\"00000000000000000000000000000001\"",
+      "document": {
+        "_id": "00000000000000000000000000000001",
+        "nested": {
+          "x": 1,
+          "y": 2
+        },
+        "flag": true
+      },
+      "serializedJson": "{\"_id\":\"00000000000000000000000000000001\",\"nested\":{\"x\":1,\"y\":2},\"flag\":true}",
+      "serializedHex": "7b225f6964223a223030303030303030303030303030303030303030303030303030303030303031222c226e6573746564223a7b2278223a312c2279223a327d2c22666c6167223a747275657d",
+      "blockId": "78ae694c2f8ba1ff633f298708c9c646449d82a9486bbef9dd96b3919cb557ea51fe57bffe5e10af05b54be96df8461fb6721e62f377020ab9eae7f11d818613"
+    },
+    {
+      "description": "Document with _id=\"empty_fields\"",
+      "document": {
+        "_id": "empty_fields"
+      },
+      "serializedJson": "{\"_id\":\"empty_fields\"}",
+      "serializedHex": "7b225f6964223a22656d7074795f6669656c6473227d",
+      "blockId": "3a31dc142e6c7073ef1bd56748096d7787febdc7f218226b92ce74e2cf27e028a384c794704db1f68175e29077c3a056cef2d953212ee30e33854d4204433b2e"
+    },
+    {
+      "description": "Document with _id=\"unicode_doc\"",
+      "document": {
+        "_id": "unicode_doc",
+        "text": "日本語テスト",
+        "emoji": "🚀"
+      },
+      "serializedJson": "{\"_id\":\"unicode_doc\",\"text\":\"日本語テスト\",\"emoji\":\"🚀\"}",
+      "serializedHex": "7b225f6964223a22756e69636f64655f646f63222c2274657874223a22e697a5e69cace8aa9ee38386e382b9e38388222c22656d6f6a69223a22f09f9a80227d",
+      "blockId": "27dbc09549530c6c6cd2a56d27c630d35e16767e5783ec76af445254f56fbea00236f9ef53f2a4f4bb288f42f75e53fb4aacf950c1a9b633a187a17e55f406b3"
+    },
+    {
+      "description": "Document with _id=\"numeric_types\"",
+      "document": {
+        "_id": "numeric_types",
+        "integer": 42,
+        "float_val": 3.14,
+        "negative": -100,
+        "zero": 0
+      },
+      "serializedJson": "{\"_id\":\"numeric_types\",\"integer\":42,\"float_val\":3.14,\"negative\":-100,\"zero\":0}",
+      "serializedHex": "7b225f6964223a226e756d657269635f7479706573222c22696e7465676572223a34322c22666c6f61745f76616c223a332e31342c226e65676174697665223a2d3130302c227a65726f223a307d",
+      "blockId": "5fc2f7e350cf834cdd7b09857342c25883ad540ad107b19336058231a03f5a448e37e75b70d5dcaceb0c1a2ab567b76660a3cfdebe0c1fd54085259b19281390"
+    }
+  ],
+  "directoryPathVectors": [
+    {
+      "description": "Directory path for BlockSize::Message (512)",
+      "blockSizeName": "Message",
+      "blockSizeValue": 512,
+      "checksumHex": "5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452",
+      "storePath": "/tmp/store",
+      "expectedPath": "/tmp/store/Message/5/9/5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452",
+      "expectedMetadataPath": "/tmp/store/Message/5/9/5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452.m.json"
+    },
+    {
+      "description": "Directory path for BlockSize::Tiny (1024)",
+      "blockSizeName": "Tiny",
+      "blockSizeValue": 1024,
+      "checksumHex": "5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452",
+      "storePath": "/tmp/store",
+      "expectedPath": "/tmp/store/Tiny/5/9/5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452",
+      "expectedMetadataPath": "/tmp/store/Tiny/5/9/5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452.m.json"
+    },
+    {
+      "description": "Directory path for BlockSize::Small (4096)",
+      "blockSizeName": "Small",
+      "blockSizeValue": 4096,
+      "checksumHex": "5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452",
+      "storePath": "/tmp/store",
+      "expectedPath": "/tmp/store/Small/5/9/5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452",
+      "expectedMetadataPath": "/tmp/store/Small/5/9/5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452.m.json"
+    },
+    {
+      "description": "Directory path for BlockSize::Medium (1048576)",
+      "blockSizeName": "Medium",
+      "blockSizeValue": 1048576,
+      "checksumHex": "5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452",
+      "storePath": "/tmp/store",
+      "expectedPath": "/tmp/store/Medium/5/9/5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452",
+      "expectedMetadataPath": "/tmp/store/Medium/5/9/5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452.m.json"
+    },
+    {
+      "description": "Directory path for BlockSize::Large (67108864)",
+      "blockSizeName": "Large",
+      "blockSizeValue": 67108864,
+      "checksumHex": "5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452",
+      "storePath": "/tmp/store",
+      "expectedPath": "/tmp/store/Large/5/9/5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452",
+      "expectedMetadataPath": "/tmp/store/Large/5/9/5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452.m.json"
+    },
+    {
+      "description": "Directory path for BlockSize::Huge (268435456)",
+      "blockSizeName": "Huge",
+      "blockSizeValue": 268435456,
+      "checksumHex": "5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452",
+      "storePath": "/tmp/store",
+      "expectedPath": "/tmp/store/Huge/5/9/5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452",
+      "expectedMetadataPath": "/tmp/store/Huge/5/9/5946f29f7f90dd6d01e3e3e9e65909e120f955ce2b7c73c1d01e99a5fbc34e5bb372acf1bb73661a378541db6e9d87222f8f6ca8f230c41637c468f628bf8452.m.json"
+    }
+  ],
+  "collectionMetaVectors": [
+    {
+      "description": "CollectionMeta with single document mapping",
+      "meta": {
+        "mappings": {
+          "abc123": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
+        },
+        "indexes": []
+      },
+      "serializedJson": "{\"mappings\":{\"abc123\":\"a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4\"},\"indexes\":[]}",
+      "blockId": "93a7954b49b909a36bae357b67d475faa45a2a9060ad74a4c5e0219bba96c634ab8903145feb1a21f1ca7e219685e23365d6b821d3b3d96a5436a6334053756d"
+    },
+    {
+      "description": "CollectionMeta with multiple document mappings and index",
+      "meta": {
+        "mappings": {
+          "doc001": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "doc002": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "doc003": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "indexes": [
+          {
+            "name": "email_unique",
+            "spec": {
+              "email": 1
+            },
+            "unique": true,
+            "sparse": false
+          }
+        ]
+      },
+      "serializedJson": "{\"mappings\":{\"doc001\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"doc002\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"doc003\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"},\"indexes\":[{\"name\":\"email_unique\",\"spec\":{\"email\":1},\"unique\":true,\"sparse\":false}]}",
+      "blockId": "f450dea59168c4f776946727f4a0d5ba6959fcb1a855d365d48320c578ffd3ee64ba4dc5e4a6b174ec9fc893bf7419e8408b07ab08193a2a288524eeaadada9b"
+    },
+    {
+      "description": "CollectionMeta for empty collection",
+      "meta": {
+        "mappings": {},
+        "indexes": []
+      },
+      "serializedJson": "{\"mappings\":{},\"indexes\":[]}",
+      "blockId": "c5c48d15a7394de4cce84ac1f618ade0cfe18dc972239bab2ad0a7f41150e3a70d77c732bae65329af490010618ad9cb55abed90b0a04f226b45ec63154e48f2"
+    }
+  ],
+  "headRegistryVectors": [
+    {
+      "description": "HeadRegistry legacy format (plain string values)",
+      "format": "legacy",
+      "json": {
+        "mydb:users": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "mydb:orders": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "serializedJson": "{\"mydb:users\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mydb:orders\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+      "entries": [
+        {
+          "key": "mydb:users",
+          "blockId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "key": "mydb:orders",
+          "blockId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ]
+    },
+    {
+      "description": "HeadRegistry current format (objects with blockId and timestamp)",
+      "format": "current",
+      "json": {
+        "mydb:users": {
+          "blockId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "timestamp": "2026-01-15T10:30:00.000Z"
+        },
+        "mydb:orders": {
+          "blockId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "timestamp": "2026-01-15T11:00:00.000Z"
+        }
+      },
+      "serializedJson": "{\"mydb:users\":{\"blockId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"timestamp\":\"2026-01-15T10:30:00.000Z\"},\"mydb:orders\":{\"blockId\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"timestamp\":\"2026-01-15T11:00:00.000Z\"}}",
+      "entries": [
+        {
+          "key": "mydb:users",
+          "blockId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "timestamp": "2026-01-15T10:30:00.000Z"
+        },
+        {
+          "key": "mydb:orders",
+          "blockId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "timestamp": "2026-01-15T11:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "description": "HeadRegistry empty",
+      "format": "current",
+      "json": {},
+      "serializedJson": "{}",
+      "entries": []
+    }
+  ],
+  "blockSizeVectors": [
+    {
+      "blockSizeName": "Message",
+      "blockSizeValue": 512,
+      "document": {
+        "_id": "blocksize_test",
+        "data": "hello world"
+      },
+      "serializedJson": "{\"_id\":\"blocksize_test\",\"data\":\"hello world\"}",
+      "blockId": "41b2fc885430d8f95476ae43369340214eec0432da8280a3d4138300d0272b00a5c81f42d6d05e160490f8bdedcd7e5586504127c72ba32e2de218952fad33cc",
+      "expectedDir": "Message/4/1"
+    },
+    {
+      "blockSizeName": "Tiny",
+      "blockSizeValue": 1024,
+      "document": {
+        "_id": "blocksize_test",
+        "data": "hello world"
+      },
+      "serializedJson": "{\"_id\":\"blocksize_test\",\"data\":\"hello world\"}",
+      "blockId": "41b2fc885430d8f95476ae43369340214eec0432da8280a3d4138300d0272b00a5c81f42d6d05e160490f8bdedcd7e5586504127c72ba32e2de218952fad33cc",
+      "expectedDir": "Tiny/4/1"
+    },
+    {
+      "blockSizeName": "Small",
+      "blockSizeValue": 4096,
+      "document": {
+        "_id": "blocksize_test",
+        "data": "hello world"
+      },
+      "serializedJson": "{\"_id\":\"blocksize_test\",\"data\":\"hello world\"}",
+      "blockId": "41b2fc885430d8f95476ae43369340214eec0432da8280a3d4138300d0272b00a5c81f42d6d05e160490f8bdedcd7e5586504127c72ba32e2de218952fad33cc",
+      "expectedDir": "Small/4/1"
+    },
+    {
+      "blockSizeName": "Medium",
+      "blockSizeValue": 1048576,
+      "document": {
+        "_id": "blocksize_test",
+        "data": "hello world"
+      },
+      "serializedJson": "{\"_id\":\"blocksize_test\",\"data\":\"hello world\"}",
+      "blockId": "41b2fc885430d8f95476ae43369340214eec0432da8280a3d4138300d0272b00a5c81f42d6d05e160490f8bdedcd7e5586504127c72ba32e2de218952fad33cc",
+      "expectedDir": "Medium/4/1"
+    },
+    {
+      "blockSizeName": "Large",
+      "blockSizeValue": 67108864,
+      "document": {
+        "_id": "blocksize_test",
+        "data": "hello world"
+      },
+      "serializedJson": "{\"_id\":\"blocksize_test\",\"data\":\"hello world\"}",
+      "blockId": "41b2fc885430d8f95476ae43369340214eec0432da8280a3d4138300d0272b00a5c81f42d6d05e160490f8bdedcd7e5586504127c72ba32e2de218952fad33cc",
+      "expectedDir": "Large/4/1"
+    },
+    {
+      "blockSizeName": "Huge",
+      "blockSizeValue": 268435456,
+      "document": {
+        "_id": "blocksize_test",
+        "data": "hello world"
+      },
+      "serializedJson": "{\"_id\":\"blocksize_test\",\"data\":\"hello world\"}",
+      "blockId": "41b2fc885430d8f95476ae43369340214eec0432da8280a3d4138300d0272b00a5c81f42d6d05e160490f8bdedcd7e5586504127c72ba32e2de218952fad33cc",
+      "expectedDir": "Huge/4/1"
+    }
+  ]
+}

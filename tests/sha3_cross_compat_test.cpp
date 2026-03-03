@@ -15,7 +15,8 @@ protected:
         std::vector<std::string> paths = {
             "test_vectors_sha3.json",
             "tests/test_vectors_sha3.json",
-            "../tests/test_vectors_sha3.json"
+            "../tests/test_vectors_sha3.json",
+            "../../tests/test_vectors_sha3.json"
         };
         
         std::ifstream file;

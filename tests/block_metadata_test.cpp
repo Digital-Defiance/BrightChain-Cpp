@@ -7,8 +7,11 @@ using namespace brightchain;
 class BlockMetadataTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        testDir = std::filesystem::temp_directory_path() / "brightchain_metadata_test";
-        std::filesystem::remove_all(testDir);
+        auto tmpl = (std::filesystem::temp_directory_path() / "brightchain_meta_test_XXXXXX").string();
+        std::vector<char> buf(tmpl.begin(), tmpl.end());
+        buf.push_back('\0');
+        ASSERT_NE(mkdtemp(buf.data()), nullptr) << "mkdtemp failed";
+        testDir = std::string(buf.data());
     }
 
     void TearDown() override {
