@@ -95,3 +95,6 @@ install(TARGETS brightchain
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/brightchain
     DESTINATION include
 )
+
+# Gossip protocol library
+add_subdirectory(gossip)

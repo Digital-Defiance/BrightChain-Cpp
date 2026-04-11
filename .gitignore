@@ -1,4 +1,5 @@
 ecies-lib/
+tmp
 
 # Build directories
 build/

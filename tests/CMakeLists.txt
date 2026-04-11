@@ -63,3 +63,6 @@ target_link_libraries(brightchain_tests
 
 include(GoogleTest)
 gtest_discover_tests(brightchain_tests)
+
+# Gossip protocol tests
+add_subdirectory(gossip)

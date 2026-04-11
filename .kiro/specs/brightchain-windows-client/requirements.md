@@ -2,27 +2,27 @@
 
 ## Introduction
 
-This document specifies the requirements for the BrightChain Apple Client, a universal SwiftUI application targeting macOS, iOS, and Mac Catalyst. The application provides a full-featured interface to the BrightChain distributed storage and communication system. It integrates both a local C++ BrightChain SDK (via Objective-C++ bridge) for cryptographic operations and block storage, and the DigitalBurnbag Vault HTTP API (#[[file:BrightChain/digitalburnbag-lib/docs/api-reference/digitalburnbag-vault-api.md]]) as the server-side backend for file operations, folder management, access control, sharing, destruction, canary protocols, quorum governance, audit logging, and notifications.
+This document specifies the requirements for the BrightChain Windows Client, a WinUI 3 desktop application targeting Windows 10 (1809+) and Windows 11. The application provides a full-featured interface to the BrightChain distributed storage and communication system. It integrates both a local C++ BrightChain SDK (via C++/CLI bridge) for cryptographic operations and block storage, and the DigitalBurnbag Vault HTTP API as the server-side backend for file operations, folder management, access control, sharing, destruction, canary protocols, quorum governance, audit logging, and notifications.
 
-The client enables users to securely authenticate, exchange encrypted messages, share files (locally and via the Vault API), manage hierarchical folders with composable ACLs, schedule cryptographic destruction with blockchain proof, configure dead man's switch canary protocols, participate in quorum-governed operations, review audit logs, and access their distributed storage through a virtual drive interface (File Provider on macOS and iOS).
+The client enables users to securely authenticate, exchange encrypted messages, share files (locally and via the Vault API), manage hierarchical folders with composable ACLs, schedule cryptographic destruction with blockchain proof, configure dead man's switch canary protocols, participate in quorum-governed operations, review audit logs, and access their distributed storage through a virtual drive interface (Windows Cloud Files API / CfApi for File Explorer integration).
 
 ## Glossary
 
-- **BrightChain_Client**: The universal SwiftUI application (macOS, iOS, Mac Catalyst) that provides the user interface
+- **BrightChain_Client**: The WinUI 3 (Windows App SDK) desktop application that provides the user interface
 - **Member**: A BrightChain user with cryptographic identity (secp256k1 keys derived from BIP39 mnemonic)
 - **Block**: A fixed-size unit of encrypted data storage (512B to 256MB)
 - **CBL**: Constituent Block List — a structured block containing references to data blocks
 - **SuperCBL**: A hierarchical CBL that references sub-CBLs for large files
 - **BlockStore**: The local disk-based storage system for blocks
-- **Secure_Enclave**: Apple hardware security module (macOS/iOS) for protecting private keys
-- **SDK_Wrapper**: The Objective-C++ bridge layer between Swift and C++ code
-- **Virtual_Drive**: A File Provider-based virtual filesystem (macOS and iOS)
+- **DPAPI_Keyring**: Windows Data Protection API (DPAPI) and Windows Hello for protecting private keys with hardware-backed security
+- **CLI_Bridge**: The C++/CLI bridge layer between C# and the C++ BrightChain SDK
+- **Virtual_Drive**: A Cloud Files API (CfApi) based virtual filesystem integrated with File Explorer
 - **Magnet_URL**: A URI scheme for identifying content by cryptographic hash
 - **ECIES**: Elliptic Curve Integrated Encryption Scheme for end-to-end encryption
 - **Quorum_Node**: A network node participating in BrightChain consensus operations
 - **Vault_API**: The DigitalBurnbag Vault HTTP API (`/burnbag/*`) providing server-side file storage, folder management, ACLs, sharing, destruction, canary, quorum, audit, and notifications
 - **Vault**: A server-side encrypted file container — each file version is stored in an independent Vault with AES-256-GCM encryption, Merkle commitment tree, and blockchain ledger entry
-- **Vault_Client**: The HTTP client layer in the app that communicates with the Vault API
+- **Vault_Client**: The C# HttpClient layer in the app that communicates with the Vault API
 - **Destruction_Proof**: A blockchain-recorded cryptographic proof that a file's encryption keys have been securely erased, making the data permanently unrecoverable
 - **Non_Access_Proof**: A cryptographic proof (Bloom filter witness + Merkle proof) verifiable against the blockchain ledger, proving the server has not accessed a file's encrypted content
 - **Canary_Binding**: A dead man's switch configuration that monitors user activity through a third-party provider and triggers protocol actions (destruction, distribution, disclosure) when conditions are met or not met
@@ -35,6 +35,7 @@ The client enables users to securely authenticate, exchange encrypted messages, 
 - **TCBL**: Turing Complete BrightChain Language — an export format for folder contents
 - **Key_Wrapping**: The process of encrypting a file's symmetric AES-256-GCM key under each authorized recipient's ECIES public key
 - **Upload_Session**: A server-side chunked upload session with resume support, quota checks, and session expiration
+- **CfApi**: Windows Cloud Files API — the platform API for creating cloud file placeholders in File Explorer with on-demand hydration
 
 ## Requirements
 
@@ -48,7 +49,7 @@ The client enables users to securely authenticate, exchange encrypted messages, 
 2. WHEN the user submits valid registration details, THE BrightChain_Client SHALL generate a new BIP39 12-word mnemonic
 3. WHEN a mnemonic is generated, THE BrightChain_Client SHALL display the mnemonic words clearly and require user confirmation
 4. WHEN the user confirms the mnemonic, THE BrightChain_Client SHALL derive secp256k1 keys using BIP44 path m/44'/0'/0'/0/0
-5. WHEN keys are derived, THE BrightChain_Client SHALL encrypt the private key using Secure_Enclave and store it locally
+5. WHEN keys are derived, THE BrightChain_Client SHALL encrypt the private key using DPAPI_Keyring and store it locally
 6. WHEN registration completes, THE BrightChain_Client SHALL create a Member record and establish an authenticated session
 7. IF the user cancels registration, THEN THE BrightChain_Client SHALL discard any generated keys and return to the welcome screen
 
@@ -68,15 +69,15 @@ The client enables users to securely authenticate, exchange encrypted messages, 
 
 ### Requirement 3: Secure Key Management
 
-**User Story:** As a user, I want my private keys protected by hardware security, so that my cryptographic identity remains secure even if my device is compromised.
+**User Story:** As a user, I want my private keys protected by hardware-backed security, so that my cryptographic identity remains secure even if my device is compromised.
 
 #### Acceptance Criteria
 
-1. THE Secure_Enclave SHALL generate a secp256r1 key pair for encrypting user private keys
-2. WHEN a Member private key needs storage, THE Secure_Enclave SHALL encrypt it using ECIES with the enclave public key
-3. WHEN a cryptographic operation requires the private key, THE Secure_Enclave SHALL decrypt it on-demand with biometric or password authentication
+1. THE DPAPI_Keyring SHALL use Windows Hello (TPM 2.0) or DPAPI to generate a protection key for encrypting user private keys
+2. WHEN a Member private key needs storage, THE DPAPI_Keyring SHALL encrypt it using the Windows Hello credential guard or DPAPI with user-scope protection
+3. WHEN a cryptographic operation requires the private key, THE DPAPI_Keyring SHALL decrypt it on-demand with Windows Hello biometric, PIN, or password authentication
 4. THE BrightChain_Client SHALL never store unencrypted private keys in memory longer than necessary for the operation
-5. IF Secure_Enclave is unavailable, THEN THE BrightChain_Client SHALL fall back to Keychain with appropriate access controls
+5. IF Windows Hello is unavailable, THEN THE BrightChain_Client SHALL fall back to DPAPI with user-scope protection and appropriate access controls
 6. WHEN the user deletes their account, THE BrightChain_Client SHALL securely erase all stored key material
 
 ### Requirement 4: Secure Messaging — Conversation Management
@@ -153,16 +154,16 @@ The client enables users to securely authenticate, exchange encrypted messages, 
 
 ### Requirement 9: Virtual Drive — Mount and Access
 
-**User Story:** As a user, I want to access my BrightChain and Vault files through a virtual drive, so that I can use them with any application on macOS or iOS.
+**User Story:** As a user, I want to access my BrightChain and Vault files through a virtual drive in File Explorer, so that I can use them with any Windows application.
 
 #### Acceptance Criteria
 
-1. WHEN the user enables virtual drive, THE Virtual_Drive SHALL register a File Provider domain on macOS or iOS
-2. WHEN mounted, THE Virtual_Drive SHALL display files from the Vault_API folder hierarchy (via GET `/burnbag/folders/:id`) and local CBL references
-3. WHEN a file is opened, THE Virtual_Drive SHALL download and decrypt content on-demand via the Vault_API or local BlockStore
+1. WHEN the user enables virtual drive, THE Virtual_Drive SHALL register a CfApi sync root with File Explorer
+2. WHEN registered, THE Virtual_Drive SHALL display files from the Vault_API folder hierarchy (via GET `/burnbag/folders/:id`) and local CBL references as cloud file placeholders
+3. WHEN a file is opened, THE Virtual_Drive SHALL hydrate the placeholder by downloading and decrypting content on-demand via the Vault_API or local BlockStore
 4. WHEN a file is read, THE Virtual_Drive SHALL cache decrypted content locally for performance
-5. WHEN the user disables virtual drive, THE Virtual_Drive SHALL unregister the File Provider domain and release resources
-6. IF mount fails, THEN THE BrightChain_Client SHALL display the error and offer troubleshooting steps
+5. WHEN the user disables virtual drive, THE Virtual_Drive SHALL unregister the CfApi sync root and release resources
+6. IF registration fails, THEN THE BrightChain_Client SHALL display the error and offer troubleshooting steps
 7. THE Virtual_Drive SHALL support standard file operations (read, list, stat) for accessible content
 
 ### Requirement 10: Virtual Drive — Content Discovery
@@ -175,7 +176,7 @@ The client enables users to securely authenticate, exchange encrypted messages, 
 2. WHEN a user imports a CBL file, THE BrightChain_Client SHALL parse it and add content to the virtual drive
 3. WHEN a user imports a SuperCBL, THE BrightChain_Client SHALL resolve the hierarchy and add all content
 4. WHEN content is added, THE Virtual_Drive SHALL display it with original filename and metadata
-5. WHEN content blocks are not locally available, THE Virtual_Drive SHALL show the file as unavailable
+5. WHEN content blocks are not locally available, THE Virtual_Drive SHALL show the file as a dehydrated placeholder
 6. WHEN unavailable content is accessed, THE BrightChain_Client SHALL offer to fetch missing blocks
 7. THE BrightChain_Client SHALL maintain a catalog of all imported content references
 
@@ -213,11 +214,11 @@ The client enables users to securely authenticate, exchange encrypted messages, 
 
 #### Acceptance Criteria
 
-1. THE BrightChain_Client SHALL provide a settings interface accessible from the main menu
+1. THE BrightChain_Client SHALL provide a settings interface accessible from the navigation pane
 2. WHEN viewing settings, THE BrightChain_Client SHALL organize options into logical categories
 3. THE BrightChain_Client SHALL allow configuration of storage paths and limits
 4. THE BrightChain_Client SHALL allow configuration of network endpoints and Vault_API base URL
-5. THE BrightChain_Client SHALL allow configuration of virtual drive mount point (macOS) or File Provider domain (iOS)
+5. THE BrightChain_Client SHALL allow configuration of virtual drive sync root path for CfApi integration
 6. WHEN settings are changed, THE BrightChain_Client SHALL apply them without requiring restart when possible
 7. THE BrightChain_Client SHALL persist settings across application sessions
 
@@ -235,19 +236,19 @@ The client enables users to securely authenticate, exchange encrypted messages, 
 6. THE BrightChain_Client SHALL maintain operation logs accessible through the settings interface
 7. WHEN critical errors occur, THE BrightChain_Client SHALL offer to export diagnostic information
 
-### Requirement 15: iOS and Mac Catalyst Support
+### Requirement 15: Windows Platform Integration
 
-**User Story:** As a user, I want to use the BrightChain client on my iPhone and iPad as well as my Mac, so that I can access my files and messages from any Apple device.
+**User Story:** As a user, I want the BrightChain client to integrate with Windows platform conventions, so that the application feels native and consistent with other Windows applications.
 
 #### Acceptance Criteria
 
-1. THE BrightChain_Client SHALL compile and run on iOS 16+ and macOS 13+ (including Mac Catalyst)
-2. WHEN running on iOS, THE BrightChain_Client SHALL adapt its layout to phone and tablet screen sizes using SwiftUI adaptive layouts
-3. WHEN running on iOS, THE Virtual_Drive SHALL use the iOS File Provider extension to expose Vault files in the Files app
-4. WHEN running on macOS, THE Virtual_Drive SHALL use the macOS File Provider extension to expose Vault files in Finder
-5. THE BrightChain_Client SHALL use platform-appropriate navigation patterns (tab bar on iOS, sidebar on macOS)
-6. WHEN biometric authentication is required, THE BrightChain_Client SHALL use Face ID on iPhone/iPad and Touch ID on Mac
-7. THE BrightChain_Client SHALL share core business logic, models, and Vault_Client code across all platforms via a shared Swift module
+1. THE BrightChain_Client SHALL compile and run on Windows 10 version 1809 and later, and Windows 11, using WinUI 3 (Windows App SDK)
+2. THE BrightChain_Client SHALL use the WinUI 3 NavigationView with a left navigation pane for primary navigation
+3. THE BrightChain_Client SHALL support Windows light and dark themes, following the system theme by default
+4. THE BrightChain_Client SHALL support Windows system accent colors for visual consistency
+5. WHEN biometric authentication is required, THE BrightChain_Client SHALL use Windows Hello (facial recognition, fingerprint, or PIN)
+6. THE BrightChain_Client SHALL support standard Windows accessibility features including high contrast mode, screen reader compatibility, and keyboard navigation
+7. THE BrightChain_Client SHALL use the C++/CLI bridge layer to expose C++ BrightChain SDK functionality to the C# application layer
 
 ### Requirement 16: Vault API Client Layer
 
@@ -257,11 +258,11 @@ The client enables users to securely authenticate, exchange encrypted messages, 
 
 1. THE Vault_Client SHALL attach a valid JWT `Authorization: Bearer <token>` header to every authenticated Vault_API request
 2. WHEN the JWT expires or a 401 response is received, THE Vault_Client SHALL attempt token refresh before retrying the request
-3. THE Vault_Client SHALL map Vault_API HTTP error responses (400, 401, 403, 404, 409, 410, 413, 422) to typed Swift errors with the server's `message` field preserved
+3. THE Vault_Client SHALL map Vault_API HTTP error responses (400, 401, 403, 404, 409, 410, 413, 422) to typed C# exceptions with the server's `message` field preserved
 4. WHEN a network error occurs on a non-destructive request, THE Vault_Client SHALL retry with exponential backoff up to 3 times before surfacing the error
-5. THE Vault_Client SHALL serialize all request bodies as JSON and deserialize all response bodies from JSON
+5. THE Vault_Client SHALL serialize all request bodies as JSON and deserialize all response bodies from JSON using System.Text.Json
 6. THE Vault_Client SHALL validate that all ID fields in requests are 32-character hex strings before sending
-7. THE Vault_Client SHALL support configurable base URL and timeout values from AppSettings
+7. THE Vault_Client SHALL support configurable base URL and timeout values from application settings
 
 ### Requirement 17: Server-Side Folder Management
 

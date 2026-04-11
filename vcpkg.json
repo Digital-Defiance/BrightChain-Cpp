@@ -8,6 +8,11 @@
     {
       "name": "gtest",
       "features": ["gmock"]
-    }
+    },
+    "boost-beast",
+    "boost-asio",
+    "jwt-cpp",
+    "miniupnpc",
+    "rapidcheck"
   ]
 }
