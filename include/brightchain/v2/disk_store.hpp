@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "brightchain/v2/block_source.hpp"
 #include "brightchain/v2/codec.hpp"
 #include "brightchain/v2/encryption.hpp"
 
@@ -28,7 +29,7 @@ class CommitOutcomeUnknownError : public StorageError {
   using StorageError::StorageError;
 };
 
-class DiskStore {
+class DiskStore : public BlockSource {
  public:
   class Writer {
    public:
@@ -59,9 +60,9 @@ class DiskStore {
 
   const std::string& path() const { return path_; }
   const std::string& writerId() const { return writerId_; }
-  Digest readHead() const;
+  Digest readHead() const override;
   /// Read and verify a block against its digest.
-  Bytes readBlock(const Digest& digest) const;
+  Bytes readBlock(const Digest& digest) const override;
   /// Whether a block file exists. It does not read or verify the block.
   bool hasBlock(const Digest& digest) const;
   /// Run `body` holding the exclusive write lock.

@@ -17,7 +17,7 @@ enum class TreeKind { Catalog, Primary };
 /// Copies a block graph from one store to another, children before parents.
 class ClosureCopier {
  public:
-  ClosureCopier(const DiskStore& local, DiskStore::Writer& writer, const DiskStore& remote)
+  ClosureCopier(const DiskStore& local, DiskStore::Writer& writer, const BlockSource& remote)
       : local_(local), writer_(writer), remote_(remote) {}
 
   /// A block already present locally is complete: blocks are always written after their children.
@@ -109,7 +109,7 @@ class ClosureCopier {
 
   const DiskStore& local_;
   DiskStore::Writer& writer_;
-  const DiskStore& remote_;
+  const BlockSource& remote_;
 };
 
 /// Whether the remote record beats the local one: greater version, then tombstone, then greater digest.
@@ -121,7 +121,7 @@ bool remoteWins(const Record& local, const Record& remote) {
   return *remote.target > *local.target;
 }
 
-DatabaseRoot readDatabaseRoot(const DiskStore& store, const Digest& digest) {
+DatabaseRoot readDatabaseRoot(const BlockSource& store, const Digest& digest) {
   auto meta = decodeMetadata(store.readBlock(digest), digest);
   const auto* root = std::get_if<DatabaseRoot>(&meta);
   if (!root) throw MergeError("Not a database root");
@@ -130,14 +130,14 @@ DatabaseRoot readDatabaseRoot(const DiskStore& store, const Digest& digest) {
 
 /// Reads pages from whichever store has them and writes only to the local store.
 struct UnionBlocks : BlockStore {
-  UnionBlocks(const DiskStore& l, DiskStore::Writer& w, const DiskStore& r) : local(l), writer(w), remote(r) {}
+  UnionBlocks(const DiskStore& l, DiskStore::Writer& w, const BlockSource& r) : local(l), writer(w), remote(r) {}
   Bytes get(const Digest& d) override { return local.hasBlock(d) ? local.readBlock(d) : remote.readBlock(d); }
   void put(const Digest& d, const Bytes& b) override {
     if (writer.writeBlock(b) != d) throw MergeError("Block writer returned a different digest");
   }
   const DiskStore& local;
   DiskStore::Writer& writer;
-  const DiskStore& remote;
+  const BlockSource& remote;
 };
 
 CollectionRoot readCollectionRoot(BlockStore& blocks, const Digest& digest) {
@@ -167,7 +167,7 @@ std::string joinedFields(const std::vector<std::string>& fields) {
 }  // namespace
 
 std::optional<std::pair<Digest, std::size_t>> mergeReplica(const DiskStore& local, DiskStore::Writer& writer,
-                                                           const DiskStore& remote, const Digest& remoteHead) {
+                                                           const BlockSource& remote, const Digest& remoteHead) {
   auto localHead = local.readHead();
   if (localHead == remoteHead) return std::nullopt;
   auto localRoot = readDatabaseRoot(local, localHead);
@@ -267,7 +267,7 @@ std::optional<std::pair<Digest, std::size_t>> mergeReplica(const DiskStore& loca
   return std::make_pair(head, adopted);
 }
 
-void copyDatabase(const DiskStore& local, DiskStore::Writer& writer, const DiskStore& remote, const Digest& head) {
+void copyDatabase(const DiskStore& local, DiskStore::Writer& writer, const BlockSource& remote, const Digest& head) {
   ClosureCopier(local, writer, remote).ensureDatabase(head);
 }
 

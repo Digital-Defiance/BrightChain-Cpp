@@ -5,6 +5,7 @@
 #include <optional>
 #include <stdexcept>
 
+#include "brightchain/v2/block_source.hpp"
 #include "brightchain/v2/codec.hpp"
 #include "brightchain/v2/disk_store.hpp"
 
@@ -25,9 +26,9 @@ struct MergeResult {
 /// Returns nullopt when nothing changes; nothing is published unless every needed block was read
 /// and verified. The caller publishes the returned root.
 std::optional<std::pair<Digest, std::size_t>> mergeReplica(const DiskStore& local, DiskStore::Writer& writer,
-                                                           const DiskStore& remote, const Digest& remoteHead);
+                                                           const BlockSource& remote, const Digest& remoteHead);
 
 /// Copy a whole database state into a store, children before parents.
-void copyDatabase(const DiskStore& local, DiskStore::Writer& writer, const DiskStore& remote, const Digest& head);
+void copyDatabase(const DiskStore& local, DiskStore::Writer& writer, const BlockSource& remote, const Digest& head);
 
 }  // namespace brightchain::v2

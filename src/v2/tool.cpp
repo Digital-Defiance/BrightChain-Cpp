@@ -71,6 +71,20 @@ int main(int argc, char** argv) {
       auto other = Database::open(argv[3], key);
       auto result = db.merge(other, argc >= 5 ? std::optional<std::string>(argv[4]) : std::nullopt);
       std::cout << json{{"previous", result.previous}, {"root", result.root}, {"adopted", result.adopted}}.dump() << std::endl;
+    } else if (command == "serve" && argc >= 3) {
+      // serve [port] [token]: serve this database read-only until the process is stopped
+      unsigned short port = argc >= 4 ? static_cast<unsigned short>(std::stoi(argv[3])) : 0;
+      auto server = BlockServer::start(db.blockSource(), port, "127.0.0.1",
+                                       argc >= 5 ? std::optional<std::string>(argv[4]) : std::nullopt);
+      std::cout << json{{"url", server->url()}}.dump() << std::endl;
+      std::string line;
+      while (std::getline(std::cin, line)) {}  // run until stdin closes
+      return 0;
+    } else if (command == "pull" && argc >= 4) {
+      // pull <url> [token]: merge a served replica into this one
+      HttpBlockSource source(argv[3], argc >= 5 ? std::optional<std::string>(argv[4]) : std::nullopt);
+      auto result = db.merge(source);
+      std::cout << json{{"previous", result.previous}, {"root", result.root}, {"adopted", result.adopted}}.dump() << std::endl;
     } else if (command == "root" && argc == 3) {
       std::cout << json{{"root", db.root()}}.dump() << std::endl;
     } else if (command == "diff" && argc == 5) {

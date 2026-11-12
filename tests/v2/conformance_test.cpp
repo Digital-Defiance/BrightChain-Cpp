@@ -978,3 +978,81 @@ TEST(V2Attachments, BlobManifestValidation) {
   bytes.push_back(0);
   EXPECT_THROW(decodeMetadata(bytes), CodecError);
 }
+
+// ---- block sources and HTTP sync --------------------------------------------
+
+namespace {
+
+/// Wraps a source and counts the blocks read through it.
+struct CountingSource : BlockSource {
+  explicit CountingSource(const BlockSource& inner) : inner_(inner) {}
+  Digest readHead() const override { heads++; return inner_.readHead(); }
+  Bytes readBlock(const Digest& d) const override { blocks++; return inner_.readBlock(d); }
+  mutable int heads = 0, blocks = 0;
+  const BlockSource& inner_;
+};
+
+struct CorruptingSource : BlockSource {
+  explicit CorruptingSource(const BlockSource& inner) : inner_(inner) {}
+  Digest readHead() const override { return inner_.readHead(); }
+  Bytes readBlock(const Digest& d) const override { auto b = inner_.readBlock(d); b.back() ^= 1; return b; }
+  const BlockSource& inner_;
+};
+
+}  // namespace
+
+TEST(V2Sync, TwoDatabasesConvergeOverHttpFetchingOnlyMissingBlocks) {
+  TempDir tmp;
+  auto a = Database::open((tmp.path / "a").string());
+  std::vector<json> docs;
+  for (int i = 0; i < 600; i++) docs.push_back({{"_id", "d" + std::to_string(i)}, {"v", i}});
+  a.insertMany("docs", docs);
+  auto b = a.fork((tmp.path / "b").string());
+  auto serverA = BlockServer::start(a.blockSource());
+  auto serverB = BlockServer::start(b.blockSource());
+
+  a.insertOne("docs", {{"_id", "from-a"}, {"v", -1}});
+  b.replaceById("docs", "d7", {{"_id", "d7"}, {"v", 777}});
+  HttpBlockSource fromB(serverB->url());
+  HttpBlockSource fromA(serverA->url());
+  auto pulled = a.merge(fromB);
+  b.merge(fromA);
+  EXPECT_EQ(pulled.adopted, 1u);
+  EXPECT_EQ(a.root(), b.root());
+  EXPECT_EQ((*a.findById("docs", "d7"))["v"], 777);
+
+  // A counting wrapper in front of the database shows what a merge reads: a few pages, not the collection.
+  auto c = a.fork((tmp.path / "c").string());
+  a.insertOne("docs", {{"_id", "late"}, {"v", 5}});
+  auto aSource = a.blockSource();
+  CountingSource counting(*aSource);
+  c.merge(counting);
+  EXPECT_LT(counting.blocks, 25);
+  CountingSource idle(*aSource);
+  EXPECT_EQ(c.merge(idle).root, c.root());
+  EXPECT_EQ(idle.blocks, 0);
+  EXPECT_EQ(idle.heads, 1);
+}
+
+TEST(V2Sync, TokensAndBadServers) {
+  TempDir tmp;
+  auto a = Database::open((tmp.path / "a").string());
+  a.insertOne("docs", {{"_id", "one"}});
+  auto b = a.fork((tmp.path / "b").string());
+  a.insertOne("docs", {{"_id", "two"}});
+  auto server = BlockServer::start(a.blockSource(), 0, "127.0.0.1", "secret");
+  EXPECT_THROW(b.merge(HttpBlockSource(server->url())), StorageError);
+  EXPECT_THROW(b.merge(HttpBlockSource(server->url(), "nope")), StorageError);
+  b.merge(HttpBlockSource(server->url(), "secret"));
+  EXPECT_TRUE(b.findById("docs", "two").has_value());
+
+  auto c = a.fork((tmp.path / "c").string());
+  a.insertOne("docs", {{"_id", "three"}});
+  auto before = c.root();
+  auto source = a.blockSource();
+  CorruptingSource corrupt(*source);
+  auto corruptServer = BlockServer::start(std::make_shared<CorruptingSource>(*source));
+  EXPECT_THROW(c.merge(HttpBlockSource(corruptServer->url())), StorageError);  // digest check
+  EXPECT_EQ(c.root(), before);
+  EXPECT_THROW(HttpBlockSource(server->url(), "secret").readBlock(std::string(128, 'f')), MissingBlockError);
+}

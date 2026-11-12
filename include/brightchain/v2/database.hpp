@@ -138,6 +138,10 @@ class Database {
   /// order or direction of merges gives the same root. Nothing is published if a needed block is
   /// missing or fails its digest.
   MergeResult merge(const Database& other, const std::optional<Digest>& root = std::nullopt);
+  /// Merge from any block source, such as an HttpBlockSource.
+  MergeResult merge(const BlockSource& source, const std::optional<Digest>& root = std::nullopt);
+  /// This database as a block source, for BlockServer or another database's merge.
+  std::shared_ptr<const BlockSource> blockSource() const;
 
   /// The digest of the current database state. Equal roots mean equal data.
   Digest root() const;

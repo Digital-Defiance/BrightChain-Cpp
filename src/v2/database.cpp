@@ -376,12 +376,18 @@ Database Database::fork(const std::string& path) const {
 }
 
 MergeResult Database::merge(const Database& other, const std::optional<Digest>& root) {
-  auto remoteHead = root ? *root : other.store_.readHead();
+  return merge(static_cast<const BlockSource&>(other.store_), root);
+}
+
+std::shared_ptr<const BlockSource> Database::blockSource() const { return std::make_shared<DiskStore>(store_); }
+
+MergeResult Database::merge(const BlockSource& source, const std::optional<Digest>& root) {
+  auto remoteHead = root ? *root : source.readHead();
   MergeResult result;
   store_.withWriteLock([&](DiskStore::Writer& writer) {
     result.previous = store_.readHead();
     result.root = result.previous;
-    if (auto merged = mergeReplica(store_, writer, other.store_, remoteHead)) {
+    if (auto merged = mergeReplica(store_, writer, source, remoteHead)) {
       writer.publishHead(merged->first);
       result.root = merged->first;
       result.adopted = merged->second;
