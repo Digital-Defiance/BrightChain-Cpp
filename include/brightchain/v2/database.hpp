@@ -2,8 +2,13 @@
 // Standalone local BrightDB over the portable v2 disk profile. Same semantics as
 // the TypeScript PortableBrightDb: every commit publishes one database root.
 
+#include <chrono>
+#include <condition_variable>
+#include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
+#include <thread>
 #include <optional>
 #include <stdexcept>
 #include <vector>
@@ -40,6 +45,44 @@ struct Change {
   Type type;
   std::optional<nlohmann::json> before;
   std::optional<nlohmann::json> after;
+};
+
+class Database;
+
+/// Delivered when the database root has moved. Several commits may be covered by one event.
+struct ChangeEvent {
+  Digest previous;  // the last root this subscription saw
+  Digest root;      // the root now current
+  const Database* db;
+  /// Document-level changes between `previous` and `root`.
+  std::vector<Change> changes() const;
+};
+
+/// Shared by every handle opened from one Database so local commits wake subscribers at once.
+struct CommitNotifier {
+  std::mutex mutex;
+  std::condition_variable cv;
+  std::uint64_t commits = 0;
+  void bump() {
+    { std::lock_guard<std::mutex> lock(mutex); commits++; }
+    cv.notify_all();
+  }
+};
+
+/// Stops delivering events when destroyed or when stop() is called.
+class Subscription {
+ public:
+  ~Subscription();
+  Subscription(const Subscription&) = delete;
+  Subscription& operator=(const Subscription&) = delete;
+  void stop();
+
+ private:
+  friend class Database;
+  Subscription() = default;
+  struct State;
+  std::shared_ptr<State> state_;
+  std::thread thread_;
 };
 
 /// A read-only view pinned to one database root.
@@ -79,6 +122,15 @@ class Database {
   /// its new documents as added.
   std::vector<Change> diff(const Digest& from, const Digest& to) const;
 
+  /// Call `listener` after the root moves, whether the commit came from this
+  /// process or from another using the same directory. Events for one
+  /// subscription are delivered one at a time, in order, on its own thread.
+  /// `onError` receives listener exceptions and read failures.
+  std::unique_ptr<Subscription> subscribe(
+      std::function<void(const ChangeEvent&)> listener,
+      std::chrono::milliseconds interval = std::chrono::milliseconds(250),
+      std::function<void(const std::exception&)> onError = nullptr) const;
+
   std::vector<std::string> listCollections();
   std::optional<nlohmann::json> findById(const std::string& collection, const std::string& id);
   /// Every live document in a collection (trie order).
@@ -96,6 +148,7 @@ class Database {
   DatabaseRoot readRoot() const;
 
   DiskStore store_;
+  std::shared_ptr<CommitNotifier> notifier_ = std::make_shared<CommitNotifier>();
 };
 
 }  // namespace brightchain::v2

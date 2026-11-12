@@ -327,3 +327,48 @@ TEST(V2Diff, DiffOfLargeCollectionReadsOnlyChangedPaths) {
   EXPECT_EQ(changes[0].id, "u433");
   EXPECT_EQ(changes[0].type, Change::Type::Modified);
 }
+
+TEST(V2Subscribe, DeliversLocalAndCrossHandleCommitsAndStops) {
+  TempDir tmp;
+  auto path = (tmp.path / "db").string();
+  auto db = Database::open(path);
+  auto other = Database::open(path);  // a second handle, as another process would have
+
+  std::mutex m;
+  std::vector<std::string> seen;
+  std::vector<std::string> errors;
+  auto sub = db.subscribe(
+      [&](const ChangeEvent& event) {
+        for (const auto& c : event.changes()) {
+          std::lock_guard<std::mutex> lock(m);
+          seen.push_back(c.id + (c.type == Change::Type::Added ? ":added" : c.type == Change::Type::Modified ? ":modified" : ":deleted"));
+        }
+        if (event.changes().size() == 1 && event.changes()[0].id == "boom") throw std::runtime_error("listener failed");
+      },
+      std::chrono::milliseconds(20), [&](const std::exception& e) { std::lock_guard<std::mutex> lock(m); errors.push_back(e.what()); });
+
+  auto waitFor = [&](auto pred) {
+    for (int i = 0; i < 500; i++) {
+      { std::lock_guard<std::mutex> lock(m); if (pred()) return true; }
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return false;
+  };
+
+  db.insertOne("c", {{"_id", "a"}, {"v", 1}});
+  ASSERT_TRUE(waitFor([&] { return seen.size() >= 1; }));
+  other.replaceById("c", "a", {{"_id", "a"}, {"v", 2}});  // committed through the other handle
+  ASSERT_TRUE(waitFor([&] { return seen.size() >= 2; }));
+  EXPECT_EQ(seen, (std::vector<std::string>{"a:added", "a:modified"}));
+
+  db.insertOne("c", {{"_id", "boom"}});
+  ASSERT_TRUE(waitFor([&] { return !errors.empty(); }));
+  EXPECT_EQ(errors[0], "listener failed");
+
+  sub->stop();
+  auto count = [&] { std::lock_guard<std::mutex> lock(m); return seen.size(); };
+  auto before = count();
+  db.deleteById("c", "a");
+  std::this_thread::sleep_for(std::chrono::milliseconds(150));
+  EXPECT_EQ(count(), before);
+}

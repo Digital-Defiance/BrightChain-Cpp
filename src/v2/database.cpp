@@ -323,6 +323,7 @@ void Database::writeBatch(const std::vector<WriteOp>& operations) {
     }
     if (auto head = batch.persist()) writer.publishHead(*head);
   });
+  notifier_->bump();
 }
 
 std::string Database::insertOne(const std::string& collection, const nlohmann::json& document) {
@@ -333,6 +334,7 @@ std::string Database::insertOne(const std::string& collection, const nlohmann::j
     id = batch.insert(collection, document);
     if (auto head = batch.persist()) writer.publishHead(*head);
   });
+  notifier_->bump();
   return id;
 }
 
@@ -344,6 +346,7 @@ std::vector<std::string> Database::insertMany(const std::string& collection, con
     for (const auto& d : documents) ids.push_back(batch.insert(collection, d));
     if (auto head = batch.persist()) writer.publishHead(*head);
   });
+  notifier_->bump();
   return ids;
 }
 
@@ -355,6 +358,7 @@ ReplaceResult Database::replaceById(const std::string& collection, const std::st
     result = batch.replace(collection, id, document);
     if (auto head = batch.persist()) writer.publishHead(*head);
   });
+  notifier_->bump();
   return result;
 }
 
@@ -366,7 +370,70 @@ int Database::deleteById(const std::string& collection, const std::string& id) {
     count = batch.remove(collection, id);
     if (auto head = batch.persist()) writer.publishHead(*head);
   });
+  notifier_->bump();
   return count;
+}
+
+}  // namespace brightchain::v2
+
+namespace brightchain::v2 {
+
+std::vector<Change> ChangeEvent::changes() const { return db->diff(previous, root); }
+
+struct Subscription::State {
+  std::mutex mutex;
+  bool stopped = false;
+  std::shared_ptr<CommitNotifier> notifier;
+};
+
+Subscription::~Subscription() { stop(); }
+
+void Subscription::stop() {
+  if (state_) {
+    { std::lock_guard<std::mutex> lock(state_->mutex); state_->stopped = true; }
+    // Take the notifier's mutex so a waiting thread cannot miss the wakeup.
+    { std::lock_guard<std::mutex> lock(state_->notifier->mutex); }
+    state_->notifier->cv.notify_all();
+  }
+  if (thread_.joinable() && thread_.get_id() != std::this_thread::get_id()) thread_.join();
+}
+
+std::unique_ptr<Subscription> Database::subscribe(std::function<void(const ChangeEvent&)> listener,
+                                                  std::chrono::milliseconds interval,
+                                                  std::function<void(const std::exception&)> onError) const {
+  auto sub = std::unique_ptr<Subscription>(new Subscription());
+  sub->state_ = std::make_shared<Subscription::State>();
+  sub->state_->notifier = notifier_;
+  auto state = sub->state_;
+  auto notifier = notifier_;
+  Database db = *this;
+  Digest last = db.root();
+  sub->thread_ = std::thread([state, notifier, db, last, interval, listener = std::move(listener),
+                              onError = std::move(onError)]() mutable {
+    std::uint64_t seen = 0;
+    while (true) {
+      try {
+        auto root = db.root();
+        if (root != last) {
+          ChangeEvent event{last, root, &db};
+          last = root;
+          listener(event);
+        }
+      } catch (const std::exception& e) {
+        if (onError) onError(e);
+      }
+      // Wake on a local commit, on stop, or after the polling interval.
+      std::unique_lock<std::mutex> lock(notifier->mutex);
+      notifier->cv.wait_for(lock, interval, [&] {
+        std::lock_guard<std::mutex> stateLock(state->mutex);
+        return state->stopped || notifier->commits != seen;
+      });
+      seen = notifier->commits;
+      std::lock_guard<std::mutex> stateLock(state->mutex);
+      if (state->stopped) return;
+    }
+  });
+  return sub;
 }
 
 }  // namespace brightchain::v2

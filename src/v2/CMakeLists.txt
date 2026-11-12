@@ -8,7 +8,8 @@ add_library(brightdb_v2
     database.cpp
 )
 target_include_directories(brightdb_v2 PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>)
-target_link_libraries(brightdb_v2 PUBLIC OpenSSL::Crypto nlohmann_json::nlohmann_json)
+find_package(Threads REQUIRED)
+target_link_libraries(brightdb_v2 PUBLIC OpenSSL::Crypto nlohmann_json::nlohmann_json Threads::Threads)
 target_compile_features(brightdb_v2 PUBLIC cxx_std_20)
 
 # Command-line worker with the same commands as brightchain-db/test-support/v2-worker.ts,
