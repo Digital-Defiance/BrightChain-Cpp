@@ -11,6 +11,7 @@ add_library(brightdb_v2
     encryption.cpp
     block_source.cpp
     reachable.cpp
+    filter.cpp
     disk_store.cpp
     database.cpp
 )

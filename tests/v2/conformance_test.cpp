@@ -1291,3 +1291,58 @@ TEST(V2Gc, CollectsAnEncryptedStore) {
   EXPECT_EQ(db.findAll("c").size(), 40u);
   EXPECT_EQ((*Database::open(path, testKey()).findById("c", "d3"))["v"], 1);
 }
+
+// ---- filters and cloning -----------------------------------------------------
+
+TEST(V2Filter, MatchesTheTypeScriptQueryEngine) {
+  auto vectors = loadJson(kFixtures / "filters.json");
+  TempDir tmp;
+  auto db = Database::open((tmp.path / "db").string());
+  std::vector<json> docs(vectors.at("documents").begin(), vectors.at("documents").end());
+  db.insertMany("people", docs);
+  int checked = 0;
+  for (const auto& c : vectors.at("cases")) {
+    auto found = db.find("people", c.at("filter"));
+    std::vector<std::string> ids;
+    for (const auto& d : found) ids.push_back(d.at("_id").get<std::string>());
+    std::sort(ids.begin(), ids.end());
+    EXPECT_EQ(ids, c.at("ids").get<std::vector<std::string>>()) << c.at("filter").dump();
+    checked++;
+  }
+  EXPECT_GE(checked, 49);
+  EXPECT_EQ(db.findOne("people", {{"name", "alice"}})->at("name"), "alice");
+  EXPECT_FALSE(db.findOne("people", {{"name", "nobody"}}).has_value());
+  EXPECT_TRUE(db.find("missing-collection", json::object()).empty());
+}
+
+TEST(V2Clone, CopiesAServedDatabaseIntoANewDirectoryAndStaysMergeable) {
+  TempDir tmp;
+  auto a = Database::open((tmp.path / "a").string());
+  a.createIndex("docs", "by_n", {"n"});
+  std::vector<json> docs;
+  for (int i = 0; i < 100; i++) docs.push_back({{"_id", "d" + std::to_string(i)}, {"n", i}});
+  a.insertMany("docs", docs);
+  auto ref = a.putAttachment(Bytes(1'200'000, 6));
+  a.insertOne("docs", {{"_id", "file"}, {"n", -1}, {"_files", {{"f", {{"digest", ref.digest}, {"size", ref.size}}}}}});
+
+  auto server = BlockServer::start(a.blockSource(), 0, "127.0.0.1", "tok");
+  EXPECT_THROW(Database::cloneFrom((tmp.path / "denied").string(), HttpBlockSource(server->url())), StorageError);
+  auto b = Database::cloneFrom((tmp.path / "b").string(), HttpBlockSource(server->url(), "tok"));
+  EXPECT_EQ(b.root(), a.root());
+  EXPECT_NE(DiskStore::open((tmp.path / "b").string()).writerId(), DiskStore::open((tmp.path / "a").string()).writerId());
+  EXPECT_EQ(b.getAttachment(ref.digest).size(), ref.size);
+  EXPECT_EQ(b.findByIndex("docs", "by_n", IndexQuery::fromJson({{"gte", 98}})).size(), 2u);
+
+  a.insertOne("docs", {{"_id", "from-a"}, {"n", 500}});
+  b.insertOne("docs", {{"_id", "from-b"}, {"n", 600}});
+  b.merge(HttpBlockSource(server->url(), "tok"));
+  EXPECT_TRUE(b.findById("docs", "from-a").has_value());
+  a.merge(b);
+  EXPECT_EQ(a.root(), b.root());
+
+  // A clone can be encrypted under its own key.
+  auto c = Database::cloneFrom((tmp.path / "c").string(), HttpBlockSource(server->url(), "tok"), testKey());
+  EXPECT_TRUE(c.encryptsAtRest());
+  EXPECT_FALSE(a.encryptsAtRest());
+  EXPECT_EQ(c.findAll("docs").size(), a.findAll("docs").size());
+}

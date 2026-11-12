@@ -365,6 +365,23 @@ std::optional<nlohmann::json> Snapshot::findById(const std::string& collection, 
   return document(*record, *coll);
 }
 
+std::vector<nlohmann::json> Snapshot::find(const std::string& collection, const nlohmann::json& filter) const {
+  std::vector<nlohmann::json> out;
+  if (filter.is_object() && filter.contains("_id") && filter.at("_id").is_string()) {
+    if (auto doc = findById(collection, filter.at("_id").get<std::string>()); doc && matchesFilter(*doc, filter))
+      out.push_back(std::move(*doc));
+    return out;
+  }
+  for (auto& doc : findAll(collection)) if (matchesFilter(doc, filter)) out.push_back(std::move(doc));
+  return out;
+}
+
+std::optional<nlohmann::json> Snapshot::findOne(const std::string& collection, const nlohmann::json& filter) const {
+  auto all = find(collection, filter);
+  if (all.empty()) return std::nullopt;
+  return std::move(all.front());
+}
+
 std::vector<nlohmann::json> Snapshot::findAll(const std::string& collection) const {
   std::vector<nlohmann::json> out;
   auto coll = collectionRoot(collection);
@@ -375,6 +392,20 @@ std::vector<nlohmann::json> Snapshot::findAll(const std::string& collection) con
     if (auto doc = document(r, *coll)) out.push_back(std::move(*doc));
   });
   return out;
+}
+
+Database Database::cloneFrom(const std::string& path, const BlockSource& source, const std::optional<Bytes>& encryptionKey) {
+  auto head = source.readHead();
+  auto meta = decodeMetadata(source.readBlock(head), head);
+  const auto* root = std::get_if<DatabaseRoot>(&meta);
+  if (!root) throw StorageError("The source head does not reference a database root");
+  DiskStore::Cipher cipher = encryptionKey ? std::make_shared<const AesCipher>(*encryptionKey) : nullptr;
+  auto store = DiskStore::create(path, encodeMetadata(DatabaseRoot{root->databaseId, 0, std::nullopt}), "", cipher);
+  store.withWriteLock([&](DiskStore::Writer& writer) {
+    copyDatabase(store, writer, source, head);
+    writer.publishHead(head);
+  });
+  return Database(std::move(store));
 }
 
 Database Database::fork(const std::string& path) const {

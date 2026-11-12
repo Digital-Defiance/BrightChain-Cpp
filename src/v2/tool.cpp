@@ -18,6 +18,13 @@ int main(int argc, char** argv) {
     // BRIGHTDB_KEY (64 hex digits) opens an encrypted database.
     std::optional<Bytes> key;
     if (const char* hex = std::getenv("BRIGHTDB_KEY")) key = fromHex(hex);
+    if (command == "clone" && argc >= 4) {
+      // clone <target directory> <url> [token]: copy a served database into a new directory
+      HttpBlockSource source(argv[3], argc >= 5 ? std::optional<std::string>(argv[4]) : std::nullopt);
+      Database::cloneFrom(argv[2], source, key);
+      std::cout << R"({"ok":true})" << std::endl;
+      return 0;
+    }
     auto db = Database::open(argv[2], key);
     if (command == "write" && argc == 6) {
       // write <collection> <tag> <count>: one atomic batch
@@ -85,6 +92,15 @@ int main(int argc, char** argv) {
       HttpBlockSource source(argv[3], argc >= 5 ? std::optional<std::string>(argv[4]) : std::nullopt);
       auto result = db.merge(source);
       std::cout << json{{"previous", result.previous}, {"root", result.root}, {"adopted", result.adopted}}.dump() << std::endl;
+    } else if (command == "clone" && argc >= 4) {
+      // clone <url> [token]: handled before the database is opened (see below)
+      throw std::runtime_error("clone is handled before open");
+    } else if (command == "find" && argc == 5) {
+      // find <collection> <filter json>: ids of matching documents, in key order
+      std::vector<std::string> ids;
+      for (const auto& d : db.find(argv[3], json::parse(argv[4]))) ids.push_back(d.at("_id").get<std::string>());
+      std::sort(ids.begin(), ids.end());
+      std::cout << json(ids).dump() << std::endl;
     } else if (command == "gc" && argc >= 3) {
       // gc [graceMs]: delete blocks the current root does not reach
       GcOptions options;

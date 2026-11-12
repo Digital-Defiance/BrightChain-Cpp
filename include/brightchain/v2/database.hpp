@@ -16,6 +16,7 @@
 #include "brightchain/v2/attachments.hpp"
 #include "brightchain/v2/codec.hpp"
 #include "brightchain/v2/disk_store.hpp"
+#include "brightchain/v2/filter.hpp"
 #include "brightchain/v2/index_key.hpp"
 #include "brightchain/v2/merge.hpp"
 #include "brightchain/v2/tree.hpp"
@@ -117,6 +118,10 @@ class Snapshot {
   std::optional<nlohmann::json> findById(const std::string& collection, const std::string& id) const;
   /// Every live document in a collection (trie order).
   std::vector<nlohmann::json> findAll(const std::string& collection) const;
+  /// Documents matching a MongoDB-style filter (see filter.hpp), by scanning the collection. A filter
+  /// with a string `_id` looks that document up directly.
+  std::vector<nlohmann::json> find(const std::string& collection, const nlohmann::json& filter = nlohmann::json::object()) const;
+  std::optional<nlohmann::json> findOne(const std::string& collection, const nlohmann::json& filter = nlohmann::json::object()) const;
   /// The live collection root, or nullopt when absent in this state.
   std::optional<CollectionRoot> collectionRoot(const std::string& collection) const;
   /// Index definitions on a collection.
@@ -141,6 +146,20 @@ class Database {
   static Database open(const std::string& path, const std::optional<Bytes>& encryptionKey = std::nullopt);
   /// Same with a key ring, so the data key can rotate while block names stay put.
   static Database openWithKeyRing(const std::string& path, const KeyRing& ring);
+
+  /// Create a new directory holding a copy of the database a block source serves (for example an
+  /// HttpBlockSource), with a new writer ID. Afterwards the two are replicas that can merge.
+  static Database cloneFrom(const std::string& path, const BlockSource& source,
+                            const std::optional<Bytes>& encryptionKey = std::nullopt);
+  /// Whether blocks are encrypted at rest by the profile in spec section 10.
+  bool encryptsAtRest() const { return store_.cipher() != nullptr; }
+
+  std::vector<nlohmann::json> find(const std::string& collection, const nlohmann::json& filter = nlohmann::json::object()) {
+    return snapshot().find(collection, filter);
+  }
+  std::optional<nlohmann::json> findOne(const std::string& collection, const nlohmann::json& filter = nlohmann::json::object()) {
+    return snapshot().findOne(collection, filter);
+  }
 
   /// Copy this database into a new directory as an independent replica: same database ID, new
   /// writer ID, so both sides can write and later merge each other.
