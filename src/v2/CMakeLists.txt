@@ -8,6 +8,7 @@ add_library(brightdb_v2
     index_tree.cpp
     attachments.cpp
     merge.cpp
+    encryption.cpp
     disk_store.cpp
     database.cpp
 )

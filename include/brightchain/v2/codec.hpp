@@ -26,7 +26,11 @@ constexpr std::size_t kMaxIndexFields = 8;
 constexpr std::size_t kMaxFieldPathBytes = 256;
 /// Attachment chunk size: every chunk but the last is exactly this long.
 constexpr std::size_t kBlobChunkBytes = 1'048'576;
-constexpr std::size_t kMaxBlobChunks = (kMaxMetadataBytes - 5 - 8 - 2) / 64;
+/// Entries per blob manifest: (4096 - magic, kind, size, depth, count) / 64-byte digests.
+constexpr std::size_t kMaxBlobChunks = (kMaxMetadataBytes - 5 - 8 - 1 - 2) / 64;
+constexpr int kMaxBlobDepth = 7;
+/// Bytes covered by each entry of a manifest at `depth` (every entry but the last is full).
+std::uint64_t blobChildSpan(int depth);
 
 using Bytes = std::vector<std::uint8_t>;
 /// Lowercase SHA3-512 hex (128 digits).
@@ -101,7 +105,8 @@ struct IndexBranch {
 
 struct Blob {
   std::uint64_t size = 0;
-  std::vector<Digest> chunks;
+  int depth = 0;  // 0: entries are chunk blocks; n > 0: entries are manifests of depth n - 1
+  std::vector<Digest> entries;
 };
 
 using Metadata = std::variant<DatabaseRoot, CollectionRoot, Branch, Leaf, IndexSet, IndexLeaf, IndexBranch, Blob>;

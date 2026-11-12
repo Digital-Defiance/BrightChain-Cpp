@@ -7,6 +7,7 @@
 #include <fstream>
 #include <map>
 #include <random>
+#include <sstream>
 
 #include "brightchain/v2/database.hpp"
 #include "brightchain/v2/index_key.hpp"
@@ -66,7 +67,8 @@ Metadata metadataFrom(const json& j) {
   if (kind == "blob") {
     Blob blob;
     blob.size = std::stoull(j.at("size").get<std::string>());
-    blob.chunks = j.at("chunks").get<std::vector<std::string>>();
+    blob.depth = j.at("depth");
+    blob.entries = j.at("entries").get<std::vector<std::string>>();
     return blob;
   }
   if (kind == "branch") {
@@ -134,7 +136,7 @@ TEST(V2Vectors, EveryBlockMatchesTheReferenceBytesAndDigests) {
     }
     checked++;
   }
-  EXPECT_GE(checked, 17);
+  EXPECT_GE(checked, 19);
 }
 
 TEST(V2Vectors, DocumentsThatMustBeRejectedAreRejected) {
@@ -812,4 +814,167 @@ TEST(V2Merge, ReproducesTheTypeScriptMergedRoot) {
   EXPECT_EQ(b.root(), manifest.at("rootB").get<std::string>());
   EXPECT_EQ(a.merge(b).root, manifest.at("merged").get<std::string>());
   EXPECT_EQ(b.merge(a).root, manifest.at("merged").get<std::string>());
+}
+
+// ---- encrypted profile -------------------------------------------------------
+
+namespace {
+
+Bytes testKey(bool other = false) {
+  Bytes key(32);
+  for (std::size_t i = 0; i < key.size(); i++) key[i] = std::uint8_t(other ? 255 - i : i);
+  return key;
+}
+
+std::vector<fs::path> filesUnder(const fs::path& root) {
+  std::vector<fs::path> out;
+  for (auto& e : fs::recursive_directory_iterator(root)) if (e.is_regular_file()) out.push_back(e.path());
+  return out;
+}
+
+}  // namespace
+
+TEST(V2Encryption, KnownAnswersMatchTheReference) {
+  auto vectors = loadJson(kFixtures / "vectors.json").at("encryption");
+  ASSERT_EQ(toHex(testKey()), vectors.at("key").get<std::string>());
+  AesCipher cipher(testKey());
+  for (const auto& c : vectors.at("cases")) {
+    auto digest = c.at("digest").get<std::string>();
+    auto plaintext = fromHex(c.at("plaintext"));
+    EXPECT_EQ(digestPayload(plaintext), digest);
+    EXPECT_EQ(cipher.physicalName(digest), c.at("physicalName").get<std::string>());
+    auto sealed = cipher.seal(digest, plaintext, fromHex(c.at("nonce")));
+    EXPECT_EQ(toHex(sealed), c.at("sealed").get<std::string>());
+    EXPECT_EQ(cipher.open(digest, sealed), plaintext);
+  }
+  const auto& head = vectors.at("head");
+  auto sealedHead = cipher.sealHead(head.at("digest"), fromHex(head.at("nonce")));
+  EXPECT_EQ(toHex(sealedHead), head.at("sealed").get<std::string>());
+  EXPECT_EQ(cipher.openHead(sealedHead), head.at("digest").get<std::string>());
+  EXPECT_THROW(AesCipher(testKey(true)).openHead(sealedHead), DecryptionError);
+  EXPECT_THROW(AesCipher(Bytes(16)), std::runtime_error);
+}
+
+TEST(V2Encryption, ReadsTheStoreWrittenByTypeScriptAndReproducesItsLogicalHeads) {
+  auto manifest = loadJson(kFixtures / "stores" / "encrypted.json");
+  ASSERT_EQ(manifest.at("keyHex").get<std::string>(), toHex(testKey()));
+  TempDir tmp;
+  fs::copy(kFixtures / "stores" / "encrypted", tmp.path / "ts", fs::copy_options::recursive);
+  auto ts = Database::open((tmp.path / "ts").string(), testKey());
+  EXPECT_EQ(ts.root(), manifest.at("head").get<std::string>());
+  for (const auto& q : manifest.at("queries"))
+    EXPECT_EQ(idsOf(ts.findByIndex(q.at("collection"), q.at("index"), IndexQuery::fromJson(q.at("query")))),
+              q.at("ids").get<std::vector<std::string>>());
+  EXPECT_EQ(sortedById(json(ts.findAll("people"))), manifest.at("documents"));
+  EXPECT_EQ(toHex(ts.getAttachment(manifest.at("attachment").at("digest"))), toHex(attachmentBytes(false)));
+
+  // Rebuild the same history here: the logical digests match even though nonces differ.
+  auto path = (tmp.path / "cpp").string();
+  DatabaseRoot empty{manifest.at("databaseId"), 0, std::nullopt};
+  auto cipher = std::make_shared<const AesCipher>(testKey());
+  auto store = DiskStore::create(path, encodeMetadata(empty), manifest.at("writerId"), cipher);
+  auto db = Database::open(path, testKey());
+  std::vector<Digest> heads{store.readHead()};
+  auto mark = [&] { heads.push_back(db.root()); };
+  static const char* cities[] = {"Oslo", "Bergen", "Tromso", "Stavanger"};
+  using T = WriteOp::Type;
+  std::vector<WriteOp> batch;
+  for (int i = 0; i < 40; i++) {
+    char id[8];
+    std::snprintf(id, sizeof id, "p%03d", i);
+    batch.push_back({T::Insert, "people", "", {{"_id", id}, {"city", cities[i % 4]}, {"age", 20 + (i % 30)}}});
+  }
+  batch.push_back({T::CreateIndex, "people", "", {}, "by_city_age", {"city", "age"}});
+  db.writeBatch(batch);
+  mark();
+  auto ref = db.putAttachment(attachmentBytes(false), "text/plain");
+  db.replaceById("people", "p001", {{"_id", "p001"}, {"city", "Oslo"}, {"age", 99},
+                                    {"_files", {{"note", {{"digest", ref.digest}, {"size", ref.size}, {"type", "text/plain"}}}}}});
+  mark();
+  db.deleteById("people", "p002");
+  mark();
+  EXPECT_EQ(heads, manifest.at("heads").get<std::vector<std::string>>());
+}
+
+TEST(V2Encryption, StoresNothingReadableAndRejectsBadKeysAndTampering) {
+  TempDir tmp;
+  auto path = (tmp.path / "db").string();
+  std::string secret = "a-very-distinctive-secret-string";
+  {
+    auto db = Database::open(path, testKey());
+    db.createIndex("people", "by_city", {"city"});
+    db.insertMany("people", {{{"_id", "alice"}, {"city", "Oslo"}, {"note", secret}},
+                             {{"_id", "bob"}, {"city", "Bergen"}, {"note", secret}}});
+  }
+  EXPECT_THROW(Database::open(path), StorageError);
+  EXPECT_THROW(Database::open(path, testKey(true)), StorageError);
+  auto plain = (tmp.path / "plain").string();
+  Database::open(plain);
+  EXPECT_THROW(Database::open(plain, testKey()), StorageError);
+
+  auto db = Database::open(path, testKey());
+  auto root = db.root();
+  for (const auto& file : filesUnder(path)) {
+    std::ifstream in(file, std::ios::binary);
+    std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    EXPECT_EQ(content.find(secret), std::string::npos) << file;
+    EXPECT_EQ(content.find(root), std::string::npos) << file;
+  }
+  for (const auto& file : filesUnder(fs::path(path) / "blocks")) EXPECT_NE(file.filename().string(), root);
+
+  // Tamper with a document block: reads fail rather than return altered data.
+  std::vector<fs::path> blocks = filesUnder(fs::path(path) / "blocks");
+  std::map<std::uintmax_t, std::vector<fs::path>> bySize;
+  for (auto& b : blocks) bySize[fs::file_size(b)].push_back(b);
+  fs::path first, second;
+  for (auto& [size, files] : bySize) if (files.size() >= 2) { first = files[0]; second = files[1]; break; }
+  ASSERT_FALSE(first.empty());
+  fs::copy_file(second, first, fs::copy_options::overwrite_existing);  // swap a block for another
+  auto swapped = Database::open(path, testKey());
+  EXPECT_THROW(swapped.findAll("people"), StorageError);
+}
+
+TEST(V2Attachments, FilesOfAnySizeUseATreeOfManifestsAndStream) {
+  TempDir tmp;
+  auto db = Database::open((tmp.path / "db").string());
+  const std::size_t total = 64 * 1'048'576ULL + 1234;  // 65 chunks: one more than a single manifest holds
+  Bytes data(total);
+  for (std::size_t i = 0; i < total; i++) data[i] = std::uint8_t((i / 4096 + (i >> 20)) % 251);
+  std::string text(data.begin(), data.end());
+  std::istringstream stream(text);
+  auto ref = db.putAttachment(stream, "application/octet-stream");
+  EXPECT_EQ(ref.size, total);
+  auto root = decodeMetadata(DiskStore::open((tmp.path / "db").string()).readBlock(ref.digest));
+  const auto* blob = std::get_if<Blob>(&root);
+  ASSERT_NE(blob, nullptr);
+  EXPECT_EQ(blob->depth, 1);
+  EXPECT_EQ(blob->entries.size(), 2u);
+  EXPECT_EQ(db.putAttachment(data).digest, ref.digest);  // same bytes, same reference
+  std::size_t streamed = 0;
+  db.streamAttachment(ref.digest, [&](const Bytes& c) { streamed += c.size(); });
+  EXPECT_EQ(streamed, total);
+  db.insertOne("docs", {{"_id", "big"}, {"_files", {{"f", {{"digest", ref.digest}, {"size", ref.size}}}}}});
+  EXPECT_TRUE(db.findById("docs", "big").has_value());
+}
+
+TEST(V2Attachments, BlobManifestValidation) {
+  auto digest = [](int n) { char b[3]; std::snprintf(b, sizeof b, "%02x", n); std::string d; for (int i = 0; i < 64; i++) d += b; return d; };
+  auto encode = [&](std::uint64_t size, int depth, int count) {
+    Blob blob;
+    blob.size = size; blob.depth = depth;
+    for (int i = 0; i < count; i++) blob.entries.push_back(digest(i));
+    return encodeMetadata(blob);
+  };
+  const std::uint64_t MIB = 1'048'576;
+  EXPECT_NO_THROW(decodeMetadata(encode(0, 0, 0)));
+  EXPECT_NO_THROW(decodeMetadata(encode(63 * MIB, 0, 63)));
+  EXPECT_NO_THROW(decodeMetadata(encode(63 * MIB + 1, 1, 2)));
+  EXPECT_NO_THROW(decodeMetadata(encode(63ULL * 63 * MIB + 1, 2, 2)));
+  EXPECT_THROW(encode(MIB + 1, 0, 1), CodecError);
+  EXPECT_THROW(encode(64 * MIB, 0, 64), CodecError);
+  EXPECT_THROW(encode(63 * MIB, 1, 1), CodecError);
+  EXPECT_THROW(encode(10, 8, 1), CodecError);
+  auto bytes = encode(63 * MIB + 1, 1, 2);
+  bytes.push_back(0);
+  EXPECT_THROW(decodeMetadata(bytes), CodecError);
 }

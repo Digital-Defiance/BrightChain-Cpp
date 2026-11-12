@@ -9,6 +9,7 @@
 #include <string>
 
 #include "brightchain/v2/codec.hpp"
+#include "brightchain/v2/encryption.hpp"
 
 namespace brightchain::v2 {
 
@@ -43,12 +44,18 @@ class DiskStore {
     std::set<std::string> dirty_;
   };
 
-  /// Open an initialized store; fails on a missing, empty or unsupported directory.
-  static DiskStore open(const std::string& path);
+  using Cipher = std::shared_ptr<const AesCipher>;
+
+  /// Open an initialized store; fails on a missing, empty or unsupported directory. A store
+  /// created with encryption can only be opened with the same key, and a plain one without.
+  static DiskStore open(const std::string& path, const Cipher& cipher = nullptr);
   /// Initialize a new or empty directory with the given initial database root.
   static DiskStore create(const std::string& path, const Bytes& initialRoot,
-                          const std::string& writerIdHex = "");
-  static DiskStore openOrCreate(const std::string& path, const Bytes& initialRoot);
+                          const std::string& writerIdHex = "", const Cipher& cipher = nullptr);
+  static DiskStore openOrCreate(const std::string& path, const Bytes& initialRoot, const Cipher& cipher = nullptr);
+
+  /// The cipher when blocks are encrypted at rest.
+  const Cipher& cipher() const { return cipher_; }
 
   const std::string& path() const { return path_; }
   const std::string& writerId() const { return writerId_; }
@@ -61,13 +68,17 @@ class DiskStore {
   void withWriteLock(const std::function<void(Writer&)>& body);
 
  private:
-  DiskStore(std::string path, std::string writerId) : path_(std::move(path)), writerId_(std::move(writerId)) {}
+  DiskStore(std::string path, std::string writerId, Cipher cipher = nullptr)
+      : path_(std::move(path)), writerId_(std::move(writerId)), cipher_(std::move(cipher)) {}
+  /// Directory and file name a logical digest is stored under.
+  std::pair<std::string, std::string> blockLocation(const Digest& digest) const;
   Digest installBlock(const Bytes& payload, std::set<std::string>& dirty) const;
   void syncDirty(std::set<std::string>& dirty) const;
   void publishHead(const Digest& digest, std::set<std::string>& dirty) const;
 
   std::string path_;
   std::string writerId_;
+  Cipher cipher_;
 };
 
 }  // namespace brightchain::v2

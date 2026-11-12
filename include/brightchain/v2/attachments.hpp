@@ -3,6 +3,7 @@
 // manifest, referenced from documents through the reserved `_files` property.
 
 #include <functional>
+#include <istream>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -13,8 +14,6 @@
 #include "brightchain/v2/disk_store.hpp"
 
 namespace brightchain::v2 {
-
-constexpr std::uint64_t kMaxAttachmentBytes = std::uint64_t(kBlobChunkBytes) * kMaxBlobChunks;
 
 class AttachmentError : public std::runtime_error {
  public:
@@ -28,8 +27,10 @@ struct AttachmentRef {
   std::optional<std::string> type;
 };
 
-/// Write chunks and manifest. The blocks are durable but unreachable until a document references them.
+/// Write a file of any size as 1 MiB chunks under a tree of manifests. The blocks are durable but
+/// unreachable until a document references them. A stream is written as it is read.
 AttachmentRef writeAttachment(DiskStore::Writer& writer, const Bytes& bytes, const std::optional<std::string>& type);
+AttachmentRef writeAttachment(DiskStore::Writer& writer, std::istream& in, const std::optional<std::string>& type);
 /// Visit a file's chunks in order, verifying every digest.
 void streamAttachment(const DiskStore& store, const Digest& digest, const std::function<void(const Bytes&)>& visit);
 Bytes readAttachment(const DiskStore& store, const Digest& digest);

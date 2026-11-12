@@ -2,6 +2,7 @@
 // Mirrors brightchain-db/test-support/v2-worker.ts. Prints one JSON line.
 #include <algorithm>
 #include <fstream>
+#include <cstdlib>
 #include <iostream>
 #include <iterator>
 
@@ -14,7 +15,10 @@ int main(int argc, char** argv) {
   try {
     if (argc < 3) throw std::runtime_error("usage: brightdb_v2_tool <command> <directory> [args]");
     std::string command = argv[1];
-    auto db = Database::open(argv[2]);
+    // BRIGHTDB_KEY (64 hex digits) opens an encrypted database.
+    std::optional<Bytes> key;
+    if (const char* hex = std::getenv("BRIGHTDB_KEY")) key = fromHex(hex);
+    auto db = Database::open(argv[2], key);
     if (command == "write" && argc == 6) {
       // write <collection> <tag> <count>: one atomic batch
       std::string collection = argv[3], tag = argv[4];
@@ -64,7 +68,7 @@ int main(int argc, char** argv) {
       std::cout << R"({"ok":true})" << std::endl;
     } else if (command == "merge" && argc >= 4) {
       // merge <other directory> [root]: merge the other replica into this one
-      auto other = Database::open(argv[3]);
+      auto other = Database::open(argv[3], key);
       auto result = db.merge(other, argc >= 5 ? std::optional<std::string>(argv[4]) : std::nullopt);
       std::cout << json{{"previous", result.previous}, {"root", result.root}, {"adopted", result.adopted}}.dump() << std::endl;
     } else if (command == "root" && argc == 3) {

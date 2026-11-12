@@ -109,14 +109,35 @@ void assertDigest(const Digest& d) {
 
 }  // namespace
 
-Digest DiskStore::readHead() const { return readHexLine(path_ + "/HEAD", 128); }
+std::pair<std::string, std::string> DiskStore::blockLocation(const Digest& digest) const {
+  auto name = cipher_ ? cipher_->physicalName(digest) : digest;
+  return {path_ + "/blocks/" + name.substr(0, 2), name};
+}
+
+Digest DiskStore::readHead() const {
+  if (!cipher_) return readHexLine(path_ + "/HEAD", 128);
+  auto sealed = readBounded(path_ + "/HEAD", AesCipher::sealedHeadBytes());
+  try {
+    return cipher_->openHead(Bytes(sealed.begin(), sealed.end()));
+  } catch (const DecryptionError& e) {
+    throw StorageError(std::string("Cannot decrypt HEAD: ") + e.what());
+  }
+}
 
 Bytes DiskStore::readBlock(const Digest& digest) const {
   assertDigest(digest);
   bool missing = false;
-  auto data = readBounded(blockDir(path_, digest) + "/" + digest, kMaxDocumentBytes, &missing);
+  auto [directory, file] = blockLocation(digest);
+  auto data = readBounded(directory + "/" + file, kMaxDocumentBytes + (cipher_ ? kSealOverhead : 0), &missing);
   if (missing) throw MissingBlockError(digest);
   Bytes bytes(data.begin(), data.end());
+  if (cipher_) {
+    try {
+      bytes = cipher_->open(digest, bytes);
+    } catch (const DecryptionError& e) {
+      throw StorageError("BrightDB v2 block cannot be decrypted: " + digest + " (" + e.what() + ")");
+    }
+  }
   if (digestPayload(bytes) != digest) throw StorageError("BrightDB v2 block digest mismatch: " + digest);
   return bytes;
 }
@@ -125,7 +146,7 @@ Digest DiskStore::installBlock(const Bytes& payload, std::set<std::string>& dirt
   if (payload.empty() || payload.size() > kMaxDocumentBytes)
     throw StorageError("BrightDB v2 block payload exceeds format limits");
   auto digest = digestPayload(payload);
-  auto directory = blockDir(path_, digest);
+  auto [directory, file] = blockLocation(digest);
   try {
     readBlock(digest);
     dirty.insert(directory);
@@ -136,9 +157,14 @@ Digest DiskStore::installBlock(const Bytes& payload, std::set<std::string>& dirt
   requireDirectory(directory);
   auto temporary = temporaryName(directory);
   try {
-    writeSynced(temporary, payload.data(), payload.size());
-    if (::link(temporary.c_str(), (directory + "/" + digest).c_str()) != 0 && errno != EEXIST)
-      fail("Cannot install block", directory + "/" + digest);
+    if (cipher_) {
+      auto sealed = cipher_->seal(digest, payload);
+      writeSynced(temporary, sealed.data(), sealed.size());
+    } else {
+      writeSynced(temporary, payload.data(), payload.size());
+    }
+    if (::link(temporary.c_str(), (directory + "/" + file).c_str()) != 0 && errno != EEXIST)
+      fail("Cannot install block", directory + "/" + file);
     readBlock(digest);
   } catch (...) {
     ::unlink(temporary.c_str());
@@ -158,7 +184,8 @@ void DiskStore::syncDirty(std::set<std::string>& dirty) const {
 bool DiskStore::hasBlock(const Digest& digest) const {
   assertDigest(digest);
   struct stat st;
-  if (::lstat((blockDir(path_, digest) + "/" + digest).c_str(), &st) != 0) {
+  auto [directory, file] = blockLocation(digest);
+  if (::lstat((directory + "/" + file).c_str(), &st) != 0) {
     if (errno == ENOENT) return false;
     fail("Cannot stat block", digest);
   }
@@ -167,13 +194,18 @@ bool DiskStore::hasBlock(const Digest& digest) const {
 
 void DiskStore::publishHead(const Digest& digest, std::set<std::string>& dirty) const {
   readBlock(digest);
-  dirty.insert(blockDir(path_, digest));
+  dirty.insert(blockLocation(digest).first);
   syncDirty(dirty);
 
   auto temporary = temporaryName(path_);
   try {
-    auto line = digest + "\n";
-    writeSynced(temporary, line.data(), line.size());
+    if (cipher_) {
+      auto sealed = cipher_->sealHead(digest);
+      writeSynced(temporary, sealed.data(), sealed.size());
+    } else {
+      auto line = digest + "\n";
+      writeSynced(temporary, line.data(), line.size());
+    }
     if (::rename(temporary.c_str(), (path_ + "/HEAD").c_str()) != 0) fail("Cannot replace HEAD", path_);
     try {
       syncDirectory(path_);
@@ -205,7 +237,7 @@ void DiskStore::withWriteLock(const std::function<void(Writer&)>& body) {
   body(writer);  // the lock is released when fd closes, including after an exception
 }
 
-DiskStore DiskStore::open(const std::string& pathArg) {
+DiskStore DiskStore::open(const std::string& pathArg, const Cipher& cipher) {
   std::error_code ec;
   auto directory = fs::absolute(pathArg, ec).lexically_normal().string();
   while (directory.size() > 1 && directory.back() == '/') directory.pop_back();
@@ -224,7 +256,14 @@ DiskStore DiskStore::open(const std::string& pathArg) {
   if (marker != kFormat) throw StorageError("Unsupported BrightDB storage format: " + directory);
   auto id = readHexLine(directory + "/WRITER", 32);
   if (id == std::string(32, '0')) throw StorageError("BrightDB v2 requires a nonzero 16-byte writer ID");
-  DiskStore store(directory, id);
+  bool missingMarker = false;
+  auto encryptionMarker = readBounded(directory + "/ENCRYPTION", std::strlen(kEncryptionMarker), &missingMarker);
+  bool encrypted = !missingMarker;
+  if (encrypted && encryptionMarker != kEncryptionMarker)
+    throw StorageError("Unsupported BrightDB encryption profile: " + directory);
+  if (encrypted && !cipher) throw StorageError("BrightDB directory is encrypted; open it with an encryption key: " + directory);
+  if (!encrypted && cipher) throw StorageError("BrightDB directory is not encrypted; open it without an encryption key: " + directory);
+  DiskStore store(directory, id, cipher);
   requireDirectory(directory + "/blocks");
   if (::lstat((directory + "/LOCK").c_str(), &st) != 0 || !S_ISREG(st.st_mode))
     throw StorageError("Invalid BrightDB v2 lock file: " + directory);
@@ -232,7 +271,8 @@ DiskStore DiskStore::open(const std::string& pathArg) {
   return store;
 }
 
-DiskStore DiskStore::create(const std::string& pathArg, const Bytes& initialRoot, const std::string& writerIdHex) {
+DiskStore DiskStore::create(const std::string& pathArg, const Bytes& initialRoot, const std::string& writerIdHex,
+                            const Cipher& cipher) {
   std::error_code ec;
   auto directory = fs::absolute(pathArg, ec).lexically_normal().string();
   while (directory.size() > 1 && directory.back() == '/') directory.pop_back();
@@ -250,11 +290,12 @@ DiskStore DiskStore::create(const std::string& pathArg, const Bytes& initialRoot
   if (!::mkdtemp(pattern.data())) fail("Cannot create staging directory", pattern);
   std::string stage = pattern;
   try {
-    DiskStore store(stage, id);
+    DiskStore store(stage, id, cipher);
     if (::mkdir((stage + "/blocks").c_str(), 0700) != 0) fail("Cannot create blocks directory", stage);
     writeSynced(stage + "/LOCK", "", 0);
     auto line = id + "\n";
     writeSynced(stage + "/WRITER", line.data(), line.size());
+    if (cipher) writeSynced(stage + "/ENCRYPTION", kEncryptionMarker, std::strlen(kEncryptionMarker));
     writeSynced(stage + "/FORMAT", kFormat.data(), kFormat.size());
     std::set<std::string> dirty;
     auto head = store.installBlock(initialRoot, dirty);
@@ -269,22 +310,22 @@ DiskStore DiskStore::create(const std::string& pathArg, const Bytes& initialRoot
     fs::remove_all(stage, ignored);
     throw;
   }
-  return DiskStore(directory, id);
+  return DiskStore(directory, id, cipher);
 }
 
-DiskStore DiskStore::openOrCreate(const std::string& path, const Bytes& initialRoot) {
+DiskStore DiskStore::openOrCreate(const std::string& path, const Bytes& initialRoot, const Cipher& cipher) {
   try {
-    return open(path);
+    return open(path, cipher);
   } catch (const StorageError& e) {
     std::string m = e.what();
     if (m.find("does not exist") == std::string::npos && m.find("is empty") == std::string::npos) throw;
   }
   try {
-    return create(path, initialRoot);
+    return create(path, initialRoot, "", cipher);
   } catch (const StorageError& e) {
     if (std::string(e.what()).find("is not empty") == std::string::npos) throw;
   }
-  return open(path);
+  return open(path, cipher);
 }
 
 }  // namespace brightchain::v2

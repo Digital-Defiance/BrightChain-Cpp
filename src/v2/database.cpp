@@ -306,9 +306,10 @@ class WriteBatch {
 
 Database::Database(DiskStore store) : store_(std::move(store)) {}
 
-Database Database::open(const std::string& path) {
+Database Database::open(const std::string& path, const std::optional<Bytes>& encryptionKey) {
   DatabaseRoot empty{toHex(fromHex(randomId())), 0, std::nullopt};
-  auto store = DiskStore::openOrCreate(path, encodeMetadata(empty));
+  DiskStore::Cipher cipher = encryptionKey ? std::make_shared<const AesCipher>(*encryptionKey) : nullptr;
+  auto store = DiskStore::openOrCreate(path, encodeMetadata(empty), cipher);
   readRootFrom(store);
   return Database(std::move(store));
 }
@@ -366,7 +367,7 @@ std::vector<nlohmann::json> Snapshot::findAll(const std::string& collection) con
 Database Database::fork(const std::string& path) const {
   auto head = store_.readHead();
   auto root = readRootFrom(store_);
-  auto store = DiskStore::create(path, encodeMetadata(DatabaseRoot{root.databaseId, 0, std::nullopt}));
+  auto store = DiskStore::create(path, encodeMetadata(DatabaseRoot{root.databaseId, 0, std::nullopt}), "", store_.cipher());
   store.withWriteLock([&](DiskStore::Writer& writer) {
     copyDatabase(store, writer, store_, head);
     writer.publishHead(head);
@@ -465,6 +466,12 @@ void Database::dropIndex(const std::string& collection, const std::string& name)
 AttachmentRef Database::putAttachment(const Bytes& bytes, const std::optional<std::string>& type) {
   AttachmentRef ref;
   store_.withWriteLock([&](DiskStore::Writer& writer) { ref = writeAttachment(writer, bytes, type); });
+  return ref;
+}
+
+AttachmentRef Database::putAttachment(std::istream& in, const std::optional<std::string>& type) {
+  AttachmentRef ref;
+  store_.withWriteLock([&](DiskStore::Writer& writer) { ref = writeAttachment(writer, in, type); });
   return ref;
 }
 

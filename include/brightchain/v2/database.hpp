@@ -125,7 +125,9 @@ class Snapshot {
 
 class Database {
  public:
-  static Database open(const std::string& path);
+  /// Open or create a database. With `encryptionKey` (32 bytes) every block is encrypted at rest
+  /// (spec section 10). Do not set it over a store that already encrypts.
+  static Database open(const std::string& path, const std::optional<Bytes>& encryptionKey = std::nullopt);
 
   /// Copy this database into a new directory as an independent replica: same database ID, new
   /// writer ID, so both sides can write and later merge each other.
@@ -171,10 +173,12 @@ class Database {
   void createIndex(const std::string& collection, const std::string& name, const std::vector<std::string>& fields);
   void dropIndex(const std::string& collection, const std::string& name);
 
-  /// Store a file (up to 63 MiB) and return a reference to put under `_files` in a document.
+  /// Store a file of any size and return a reference to put under `_files` in a document.
   /// The blocks are durable at once but are not part of the database until a committed
   /// document references them.
   AttachmentRef putAttachment(const Bytes& bytes, const std::optional<std::string>& type = std::nullopt);
+  /// Same, reading the file from a stream as it is written, so it never has to fit in memory.
+  AttachmentRef putAttachment(std::istream& in, const std::optional<std::string>& type = std::nullopt);
   Bytes getAttachment(const Digest& digest) const;
   void streamAttachment(const Digest& digest, const std::function<void(const Bytes&)>& visit) const;
 

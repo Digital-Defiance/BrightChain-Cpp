@@ -216,10 +216,14 @@ void validateIndexBranch(const std::vector<int>& skip, const std::vector<BranchC
   if (total <= kLeafRecordBudget) throw CodecError("A branch must collapse when its entries fit in a leaf");
 }
 
-void validateBlob(std::uint64_t size, const std::vector<Digest>& chunks) {
-  std::uint64_t expected = size / kBlobChunkBytes + (size % kBlobChunkBytes ? 1 : 0);
-  if (chunks.size() > kMaxBlobChunks || chunks.size() != expected)
-    throw CodecError("Blob chunk count does not match its size");
+void validateBlob(std::uint64_t size, int depth, const std::vector<Digest>& entries) {
+  if (depth < 0 || depth > kMaxBlobDepth) throw CodecError("Invalid blob depth");
+  // childSpan(depth) = 1 MiB * 63^depth; for depth 7 this exceeds 2^64, so cap it.
+  unsigned __int128 span = kBlobChunkBytes;
+  for (int i = 0; i < depth; i++) span *= kMaxBlobChunks;
+  if (depth > 0 && size <= span) throw CodecError("A blob that fits one child must use a shallower manifest");
+  unsigned __int128 expected = (size + span - 1) / span;
+  if (entries.size() > kMaxBlobChunks || entries.size() != expected) throw CodecError("Blob entry count does not match its size");
 }
 
 // ---- JSON canonicalization -------------------------------------------------
@@ -368,6 +372,12 @@ std::string validateDocumentKey(const nlohmann::json& id, const std::optional<st
 
 // ---- public ----------------------------------------------------------------
 
+std::uint64_t blobChildSpan(int depth) {
+  unsigned __int128 span = kBlobChunkBytes;
+  for (int i = 0; i < depth; i++) span *= kMaxBlobChunks;
+  return span > UINT64_MAX ? UINT64_MAX : std::uint64_t(span);
+}
+
 bool isValidUtf8(const std::string& s) { return validUtf8(s); }
 
 std::string toHex(const Bytes& bytes) {
@@ -474,11 +484,12 @@ Bytes encodeMetadata(const Metadata& block) {
     w.u16(bitmap);
     for (auto& ch : children) { w.u64(ch.recordBytes); w.digest(ch.digest); }
   } else if (const auto* blob = std::get_if<Blob>(&block)) {
-    validateBlob(blob->size, blob->chunks);
+    validateBlob(blob->size, blob->depth, blob->entries);
     w.u8(0x09);
     w.u64(blob->size);
-    w.u16(std::uint16_t(blob->chunks.size()));
-    for (const auto& c : blob->chunks) w.digest(c);
+    w.u8(std::uint8_t(blob->depth));
+    w.u16(std::uint16_t(blob->entries.size()));
+    for (const auto& c : blob->entries) w.digest(c);
   } else {
     const auto& leaf = std::get<Leaf>(block);
     if (leaf.records.empty()) throw CodecError("A leaf must contain at least one record");
@@ -607,9 +618,10 @@ Metadata decodeMetadata(const Bytes& bytes, const std::optional<Digest>& expecte
     case 0x09: {
       Blob blob;
       blob.size = r.u64();
+      blob.depth = r.u8();
       auto count = r.u16();
-      for (int i = 0; i < count; i++) blob.chunks.push_back(r.digest());
-      validateBlob(blob.size, blob.chunks);
+      for (int i = 0; i < count; i++) blob.entries.push_back(r.digest());
+      validateBlob(blob.size, blob.depth, blob.entries);
       result = std::move(blob);
       break;
     }

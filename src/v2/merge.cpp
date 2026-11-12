@@ -100,7 +100,10 @@ class ClosureCopier {
     auto meta = decodeMetadata(bytes, digest);
     const auto* blob = std::get_if<Blob>(&meta);
     if (!blob) throw MergeError("Not an attachment manifest");
-    for (const auto& chunk : blob->chunks) if (missing(chunk)) writer_.writeBlock(remote_.readBlock(chunk));
+    for (const auto& entry : blob->entries) {
+      if (blob->depth > 0) ensureBlob(entry);
+      else if (missing(entry)) writer_.writeBlock(remote_.readBlock(entry));
+    }
     writer_.writeBlock(bytes);
   }
 

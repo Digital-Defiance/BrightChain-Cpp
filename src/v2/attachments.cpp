@@ -22,30 +22,89 @@ Blob readManifest(const DiskStore& store, const Digest& digest) {
 
 }  // namespace
 
-AttachmentRef writeAttachment(DiskStore::Writer& writer, const Bytes& bytes, const std::optional<std::string>& type) {
-  if (bytes.size() > kMaxAttachmentBytes) throw AttachmentError("An attachment is too large");
-  if (type && type->size() > 255) throw AttachmentError("An attachment type can be at most 255 bytes");
-  Blob blob;
-  blob.size = bytes.size();
-  for (std::size_t offset = 0; offset < bytes.size(); offset += kBlobChunkBytes) {
-    auto end = std::min(bytes.size(), offset + kBlobChunkBytes);
-    blob.chunks.push_back(writer.writeBlock(Bytes(bytes.begin() + std::ptrdiff_t(offset), bytes.begin() + std::ptrdiff_t(end))));
+namespace {
+
+struct Level { Digest digest; std::uint64_t size; };
+
+/// Build the manifest tree over chunk entries and return the root reference.
+AttachmentRef finish(DiskStore::Writer& writer, std::vector<Level> level, const std::optional<std::string>& type) {
+  std::uint64_t total = 0;
+  for (const auto& e : level) total += e.size;
+  int depth = 0;
+  auto write = [&](const std::vector<Level>& run, int d) {
+    Blob blob;
+    for (const auto& e : run) { blob.size += e.size; blob.entries.push_back(e.digest); }
+    blob.depth = d;
+    return Level{writer.writeBlock(encodeMetadata(blob)), blob.size};
+  };
+  while (level.size() > kMaxBlobChunks) {
+    std::vector<Level> next;
+    for (std::size_t start = 0; start < level.size(); start += kMaxBlobChunks) {
+      auto end = std::min(level.size(), start + kMaxBlobChunks);
+      next.push_back(write(std::vector<Level>(level.begin() + std::ptrdiff_t(start), level.begin() + std::ptrdiff_t(end)), depth));
+    }
+    level = std::move(next);
+    depth++;
   }
-  auto digest = writer.writeBlock(encodeMetadata(blob));
+  auto root = write(level, depth);
   writer.syncBlocks();
-  return {digest, blob.size, type};
+  return {root.digest, total, type};
 }
 
-void streamAttachment(const DiskStore& store, const Digest& digest, const std::function<void(const Bytes&)>& visit) {
-  auto manifest = readManifest(store, digest);
-  std::uint64_t remaining = manifest.size;
-  for (const auto& chunk : manifest.chunks) {
-    auto bytes = store.readBlock(chunk);
-    std::uint64_t expected = remaining < kBlobChunkBytes ? remaining : kBlobChunkBytes;
-    if (bytes.size() != expected) throw AttachmentError("Attachment chunk has the wrong length");
-    remaining -= bytes.size();
-    visit(bytes);
+void checkType(const std::optional<std::string>& type) {
+  if (type && type->size() > 255) throw AttachmentError("An attachment type can be at most 255 bytes");
+}
+
+}  // namespace
+
+AttachmentRef writeAttachment(DiskStore::Writer& writer, const Bytes& bytes, const std::optional<std::string>& type) {
+  checkType(type);
+  std::vector<Level> level;
+  for (std::size_t offset = 0; offset < bytes.size(); offset += kBlobChunkBytes) {
+    auto end = std::min(bytes.size(), offset + kBlobChunkBytes);
+    level.push_back({writer.writeBlock(Bytes(bytes.begin() + std::ptrdiff_t(offset), bytes.begin() + std::ptrdiff_t(end))), end - offset});
   }
+  return finish(writer, std::move(level), type);
+}
+
+AttachmentRef writeAttachment(DiskStore::Writer& writer, std::istream& in, const std::optional<std::string>& type) {
+  checkType(type);
+  std::vector<Level> level;
+  Bytes chunk(kBlobChunkBytes);
+  while (in) {
+    in.read(reinterpret_cast<char*>(chunk.data()), std::streamsize(chunk.size()));
+    auto got = std::size_t(in.gcount());
+    if (got == 0) break;
+    level.push_back({writer.writeBlock(Bytes(chunk.begin(), chunk.begin() + std::ptrdiff_t(got))), got});
+  }
+  return finish(writer, std::move(level), type);
+}
+
+namespace {
+
+/// Visit every chunk of a file in order with the length it must have, checking manifest sizes.
+void walkBlob(const DiskStore& store, const Digest& digest, std::optional<std::uint64_t> expectedSize,
+              const std::function<void(const Digest&, std::uint64_t)>& visit) {
+  auto manifest = readManifest(store, digest);
+  if (expectedSize && manifest.size != *expectedSize) throw AttachmentError("Attachment manifest has the wrong size");
+  auto span = blobChildSpan(manifest.depth);
+  std::uint64_t remaining = manifest.size;
+  for (const auto& entry : manifest.entries) {
+    auto size = remaining < span ? remaining : span;
+    if (manifest.depth == 0) visit(entry, size);
+    else walkBlob(store, entry, size, visit);
+    remaining -= size;
+  }
+}
+
+}  // namespace
+
+void streamAttachment(const DiskStore& store, const Digest& digest, const std::function<void(const Bytes&)>& visit) {
+  walkBlob(store, digest, std::nullopt, [&](const Digest& chunk, std::uint64_t length) {
+    auto bytes = store.readBlock(chunk);
+    if (bytes.size() != length) throw AttachmentError("Attachment chunk has the wrong length");
+    visit(bytes);
+  });
 }
 
 Bytes readAttachment(const DiskStore& store, const Digest& digest) {
@@ -77,8 +136,9 @@ void validateFileReferences(const DiskStore& store, const nlohmann::json& docume
     auto manifest = readManifest(store, digest);
     if (manifest.size != entry.at("size").get<std::uint64_t>())
       throw AttachmentError("_files." + name + ".size does not match its attachment");
-    for (const auto& chunk : manifest.chunks)
+    walkBlob(store, digest, manifest.size, [&](const Digest& chunk, std::uint64_t) {
       if (!store.hasBlock(chunk)) throw AttachmentError("_files." + name + " is missing a chunk");
+    });
   }
 }
 
