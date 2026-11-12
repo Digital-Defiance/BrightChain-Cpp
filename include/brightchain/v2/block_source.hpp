@@ -19,6 +19,16 @@ class BlockSource {
   virtual Bytes readBlock(const Digest& digest) const = 0;
 };
 
+/// Where new blocks are written. A DiskStore writer is one; tests can supply others.
+class BlockWriter {
+ public:
+  virtual ~BlockWriter() = default;
+  /// Store a payload and return its digest.
+  virtual Digest writeBlock(const Bytes& payload) = 0;
+  /// Make blocks written so far durable without publishing a head.
+  virtual void syncBlocks() = 0;
+};
+
 /// Reads a replica served by BlockServer (or anything with `GET /head` and `GET /blocks/<digest>`).
 /// Only http:// URLs are supported; use a TLS-terminating proxy on untrusted networks.
 class HttpBlockSource : public BlockSource {

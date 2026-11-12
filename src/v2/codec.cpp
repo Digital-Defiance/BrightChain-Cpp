@@ -221,7 +221,6 @@ void validateBlob(std::uint64_t size, int depth, const std::vector<Digest>& entr
   // childSpan(depth) = 1 MiB * 63^depth; for depth 7 this exceeds 2^64, so cap it.
   unsigned __int128 span = kBlobChunkBytes;
   for (int i = 0; i < depth; i++) span *= kMaxBlobChunks;
-  if (depth > 0 && size <= span) throw CodecError("A blob that fits one child must use a shallower manifest");
   unsigned __int128 expected = (size + span - 1) / span;
   if (entries.size() > kMaxBlobChunks || entries.size() != expected) throw CodecError("Blob entry count does not match its size");
 }

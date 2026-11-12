@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <map>
+#include <cstring>
 #include <random>
 #include <sstream>
 
@@ -972,7 +973,8 @@ TEST(V2Attachments, BlobManifestValidation) {
   EXPECT_NO_THROW(decodeMetadata(encode(63ULL * 63 * MIB + 1, 2, 2)));
   EXPECT_THROW(encode(MIB + 1, 0, 1), CodecError);
   EXPECT_THROW(encode(64 * MIB, 0, 64), CodecError);
-  EXPECT_THROW(encode(63 * MIB, 1, 1), CodecError);
+  // Only a file's root must be minimal; an interior manifest may hold a small tail.
+  EXPECT_NO_THROW(decodeMetadata(encode(MIB, 1, 1)));
   EXPECT_THROW(encode(10, 8, 1), CodecError);
   auto bytes = encode(63 * MIB + 1, 1, 2);
   bytes.push_back(0);
@@ -1055,4 +1057,102 @@ TEST(V2Sync, TokensAndBadServers) {
   EXPECT_THROW(c.merge(HttpBlockSource(corruptServer->url())), StorageError);  // digest check
   EXPECT_EQ(c.root(), before);
   EXPECT_THROW(HttpBlockSource(server->url(), "secret").readBlock(std::string(128, 'f')), MissingBlockError);
+}
+
+// ---- golden manifest trees ---------------------------------------------------
+
+namespace {
+
+/// A stream of `size` zero bytes.
+class ZeroBuf : public std::streambuf {
+ public:
+  explicit ZeroBuf(std::uint64_t size) : left_(size), block_(1 << 20, 0) {}
+ protected:
+  int_type underflow() override {
+    if (left_ == 0) return traits_type::eof();
+    auto n = std::min<std::uint64_t>(left_, block_.size());
+    setg(block_.data(), block_.data(), block_.data() + n);
+    left_ -= n;
+    return traits_type::to_int_type(block_[0]);
+  }
+ private:
+  std::uint64_t left_;
+  std::vector<char> block_;
+};
+
+}  // namespace
+
+/// Keeps manifests in memory and remembers the digest of all-zero blocks of each length.
+struct MemoryWriter : BlockWriter {
+  std::map<Digest, Bytes> manifests;
+  std::map<std::size_t, Digest> zeroDigests;
+  Bytes zeros = Bytes(1 << 20, 0);
+  Digest writeBlock(const Bytes& payload) override {
+    if (std::memcmp(payload.data(), zeros.data(), payload.size()) == 0) {
+      auto it = zeroDigests.find(payload.size());
+      if (it == zeroDigests.end()) it = zeroDigests.emplace(payload.size(), digestPayload(payload)).first;
+      return it->second;
+    }
+    auto digest = digestPayload(payload);
+    manifests[digest] = payload;
+    return digest;
+  }
+  void syncBlocks() override {}
+};
+
+TEST(V2Attachments, ManifestTreesMatchTheTypeScriptGoldenRoots) {
+  auto vectors = loadJson(kFixtures / "vectors.json");
+  for (const auto& tree : vectors.at("blobTrees")) {
+    std::uint64_t size = tree.at("size").get<std::uint64_t>();
+    MemoryWriter writer;
+    ZeroBuf buf(size);
+    std::istream in(&buf);
+    auto ref = writeAttachment(writer, in, std::nullopt);
+    EXPECT_EQ(ref.size, size);
+    EXPECT_EQ(ref.digest, tree.at("root").get<std::string>()) << "size " << size;
+    auto root = decodeMetadata(writer.manifests.at(ref.digest));
+    const auto* blob = std::get_if<Blob>(&root);
+    ASSERT_NE(blob, nullptr);
+    EXPECT_EQ(blob->depth, tree.at("depth").get<int>()) << "size " << size;
+    EXPECT_EQ(blob->size, size);
+    // The Bytes-based writer builds the same tree.
+    if (size <= 130ULL * 1048576) {
+      MemoryWriter other;
+      EXPECT_EQ(writeAttachment(other, Bytes(size, 0), std::nullopt).digest, ref.digest);
+    }
+  }
+}
+
+TEST(V2Attachments, DeepTreeStreamsAndRejectsAnOverDeepRoot) {
+  TempDir tmp;
+  auto db = Database::open((tmp.path / "db").string());
+  // 65 distinct chunks: chunk order must be file order.
+  std::string text;
+  for (int chunk = 0; chunk < 65; chunk++) {
+    std::string part(1 << 20, '\0');
+    part[0] = char(chunk + 1);
+    text += part;
+  }
+  std::istringstream in(text);
+  auto ref = db.putAttachment(in);
+  int index = 0;
+  db.streamAttachment(ref.digest, [&](const Bytes& chunk) {
+    index++;
+    EXPECT_EQ(chunk[0], index);
+  });
+  EXPECT_EQ(index, 65);
+
+  // A depth 1 root that fits one child is deeper than its size needs; readers refuse it.
+  auto store = DiskStore::open((tmp.path / "db").string());
+  auto small = db.putAttachment(Bytes{'x'});
+  Blob over;
+  over.size = 1;
+  over.depth = 1;
+  over.entries = {small.digest};
+  Digest overDigest;
+  db.putAttachment(Bytes{});  // keep the lock path exercised
+  DiskStore writerStore = DiskStore::open((tmp.path / "db").string());
+  writerStore.withWriteLock([&](DiskStore::Writer& w) { overDigest = w.writeBlock(encodeMetadata(over)); w.syncBlocks(); });
+  EXPECT_THROW(db.getAttachment(overDigest), AttachmentError);
+  EXPECT_THROW(db.insertOne("docs", {{"_id", "x"}, {"_files", {{"f", {{"digest", overDigest}, {"size", 1}}}}}}), AttachmentError);
 }

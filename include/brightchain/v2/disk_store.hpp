@@ -31,11 +31,11 @@ class CommitOutcomeUnknownError : public StorageError {
 
 class DiskStore : public BlockSource {
  public:
-  class Writer {
+  class Writer : public BlockWriter {
    public:
-    Digest writeBlock(const Bytes& payload);
+    Digest writeBlock(const Bytes& payload) override;
     /// Make every block written so far durable without publishing a head.
-    void syncBlocks();
+    void syncBlocks() override;
     void publishHead(const Digest& digest);
 
    private:

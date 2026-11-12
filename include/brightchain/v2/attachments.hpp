@@ -29,8 +29,8 @@ struct AttachmentRef {
 
 /// Write a file of any size as 1 MiB chunks under a tree of manifests. The blocks are durable but
 /// unreachable until a document references them. A stream is written as it is read.
-AttachmentRef writeAttachment(DiskStore::Writer& writer, const Bytes& bytes, const std::optional<std::string>& type);
-AttachmentRef writeAttachment(DiskStore::Writer& writer, std::istream& in, const std::optional<std::string>& type);
+AttachmentRef writeAttachment(BlockWriter& writer, const Bytes& bytes, const std::optional<std::string>& type);
+AttachmentRef writeAttachment(BlockWriter& writer, std::istream& in, const std::optional<std::string>& type);
 /// Visit a file's chunks in order, verifying every digest.
 void streamAttachment(const DiskStore& store, const Digest& digest, const std::function<void(const Bytes&)>& visit);
 Bytes readAttachment(const DiskStore& store, const Digest& digest);

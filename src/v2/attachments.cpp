@@ -27,7 +27,7 @@ namespace {
 struct Level { Digest digest; std::uint64_t size; };
 
 /// Build the manifest tree over chunk entries and return the root reference.
-AttachmentRef finish(DiskStore::Writer& writer, std::vector<Level> level, const std::optional<std::string>& type) {
+AttachmentRef finish(BlockWriter& writer, std::vector<Level> level, const std::optional<std::string>& type) {
   std::uint64_t total = 0;
   for (const auto& e : level) total += e.size;
   int depth = 0;
@@ -57,7 +57,7 @@ void checkType(const std::optional<std::string>& type) {
 
 }  // namespace
 
-AttachmentRef writeAttachment(DiskStore::Writer& writer, const Bytes& bytes, const std::optional<std::string>& type) {
+AttachmentRef writeAttachment(BlockWriter& writer, const Bytes& bytes, const std::optional<std::string>& type) {
   checkType(type);
   std::vector<Level> level;
   for (std::size_t offset = 0; offset < bytes.size(); offset += kBlobChunkBytes) {
@@ -67,7 +67,7 @@ AttachmentRef writeAttachment(DiskStore::Writer& writer, const Bytes& bytes, con
   return finish(writer, std::move(level), type);
 }
 
-AttachmentRef writeAttachment(DiskStore::Writer& writer, std::istream& in, const std::optional<std::string>& type) {
+AttachmentRef writeAttachment(BlockWriter& writer, std::istream& in, const std::optional<std::string>& type) {
   checkType(type);
   std::vector<Level> level;
   Bytes chunk(kBlobChunkBytes);
@@ -82,12 +82,19 @@ AttachmentRef writeAttachment(DiskStore::Writer& writer, std::istream& in, const
 
 namespace {
 
+/// A file's root must be as shallow as possible. Interior manifests may hold a small tail.
+void checkRoot(const Blob& manifest) {
+  if (manifest.depth > 0 && manifest.size <= blobChildSpan(manifest.depth))
+    throw AttachmentError("Attachment root manifest is deeper than its size needs");
+}
+
 /// Visit every chunk of a file in order with the length it must have, checking manifest sizes.
 void walkBlob(const DiskStore& store, const Digest& digest, std::optional<std::uint64_t> expectedSize,
               const std::function<void(const Digest&, std::uint64_t)>& visit) {
   auto manifest = readManifest(store, digest);
   if (expectedSize && manifest.size != *expectedSize) throw AttachmentError("Attachment manifest has the wrong size");
   auto span = blobChildSpan(manifest.depth);
+  if (!expectedSize) checkRoot(manifest);
   std::uint64_t remaining = manifest.size;
   for (const auto& entry : manifest.entries) {
     auto size = remaining < span ? remaining : span;
@@ -134,6 +141,7 @@ void validateFileReferences(const DiskStore& store, const nlohmann::json& docume
     auto digest = entry.at("digest").get<std::string>();
     if (!store.hasBlock(digest)) throw AttachmentError("_files." + name + " references a missing attachment");
     auto manifest = readManifest(store, digest);
+    checkRoot(manifest);
     if (manifest.size != entry.at("size").get<std::uint64_t>())
       throw AttachmentError("_files." + name + ".size does not match its attachment");
     walkBlob(store, digest, manifest.size, [&](const Digest& chunk, std::uint64_t) {
