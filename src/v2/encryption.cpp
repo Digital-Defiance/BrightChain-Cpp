@@ -15,7 +15,6 @@ const std::string kSalt = "BrightDB v2 encryption";
 const std::string kNameLabel = "brightdb-v2-name";
 const std::string kBlockAad = "BDB2-block";
 const std::string kHeadAad = "BDB2-head";
-constexpr std::uint8_t kVersion = 1;
 
 Bytes hkdf(const Bytes& key, const std::string& info) {
   EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr);
@@ -39,10 +38,20 @@ Bytes concat(const std::string& a, const Bytes& b) {
 
 }  // namespace
 
-AesCipher::AesCipher(const Bytes& masterKey) {
-  if (masterKey.size() != 32) throw std::runtime_error("A BrightDB encryption key must be exactly 32 bytes");
-  nameKey_ = hkdf(masterKey, "name");
-  dataKey_ = hkdf(masterKey, "data");
+AesCipher::AesCipher(const Bytes& masterKey) : AesCipher(KeyRing{masterKey, {{1, masterKey}}, 1}) {}
+
+AesCipher::AesCipher(const KeyRing& ring) {
+  auto derive = [](const Bytes& material, const std::string& info) {
+    if (material.size() != 32) throw std::runtime_error("A BrightDB encryption key must be exactly 32 bytes");
+    return hkdf(material, info);
+  };
+  nameKey_ = derive(ring.nameSecret, "name");
+  for (const auto& [version, material] : ring.dataKeys) {
+    if (version < 1 || version > 255) throw std::runtime_error("A key version must be an integer from 1 to 255");
+    dataKeys_[version] = derive(material, "data");
+  }
+  if (!dataKeys_.count(ring.currentVersion)) throw std::runtime_error("The current key version has no data key");
+  currentVersion_ = ring.currentVersion;
 }
 
 std::string AesCipher::physicalName(const Digest& logicalDigest) const {
@@ -62,12 +71,12 @@ Bytes AesCipher::encrypt(const Bytes& aad, const Bytes& plaintext, Bytes nonce) 
   if (nonce.size() != 12) throw std::runtime_error("A nonce must be 12 bytes");
   EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
   Bytes out;
-  out.push_back(kVersion);
+  out.push_back(std::uint8_t(currentVersion_));
   out.insert(out.end(), nonce.begin(), nonce.end());
   Bytes body(plaintext.size());
   int len = 0, total = 0;
   unsigned char tag[16];
-  bool ok = ctx && EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, dataKey_.data(), nonce.data()) == 1 &&
+  bool ok = ctx && EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, dataKeys_.at(currentVersion_).data(), nonce.data()) == 1 &&
             EVP_EncryptUpdate(ctx, nullptr, &len, aad.data(), int(aad.size())) == 1 &&
             (plaintext.empty() || EVP_EncryptUpdate(ctx, body.data(), &len, plaintext.data(), int(plaintext.size())) == 1);
   if (ok) { total = plaintext.empty() ? 0 : len; ok = EVP_EncryptFinal_ex(ctx, body.data() + total, &len) == 1; }
@@ -80,12 +89,14 @@ Bytes AesCipher::encrypt(const Bytes& aad, const Bytes& plaintext, Bytes nonce) 
 }
 
 Bytes AesCipher::decrypt(const Bytes& aad, const Bytes& sealed) const {
-  if (sealed.size() < kSealOverhead || sealed[0] != kVersion) throw DecryptionError("Unsupported or truncated encrypted block");
+  if (sealed.size() < kSealOverhead) throw DecryptionError("Truncated encrypted block");
+  auto key = dataKeys_.find(sealed[0]);
+  if (key == dataKeys_.end()) throw DecryptionError("No key for encryption key version " + std::to_string(sealed[0]));
   std::size_t bodyLength = sealed.size() - kSealOverhead;
   Bytes body(bodyLength);
   EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
   int len = 0;
-  bool ok = ctx && EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, dataKey_.data(), sealed.data() + 1) == 1 &&
+  bool ok = ctx && EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, key->second.data(), sealed.data() + 1) == 1 &&
             EVP_DecryptUpdate(ctx, nullptr, &len, aad.data(), int(aad.size())) == 1 &&
             (bodyLength == 0 || EVP_DecryptUpdate(ctx, body.data(), &len, sealed.data() + 13, int(bodyLength)) == 1);
   int total = bodyLength == 0 ? 0 : len;

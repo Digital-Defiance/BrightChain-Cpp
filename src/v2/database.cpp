@@ -306,9 +306,21 @@ class WriteBatch {
 
 Database::Database(DiskStore store) : store_(std::move(store)) {}
 
+Database Database::openWithKeyRing(const std::string& path, const KeyRing& ring) {
+  DatabaseRoot empty{toHex(fromHex(randomId())), 0, std::nullopt};
+  (void)empty;
+  return openWithCipher(path, std::make_shared<const AesCipher>(ring));
+}
+
 Database Database::open(const std::string& path, const std::optional<Bytes>& encryptionKey) {
   DatabaseRoot empty{toHex(fromHex(randomId())), 0, std::nullopt};
   DiskStore::Cipher cipher = encryptionKey ? std::make_shared<const AesCipher>(*encryptionKey) : nullptr;
+  (void)empty;
+  return openWithCipher(path, cipher);
+}
+
+Database Database::openWithCipher(const std::string& path, const DiskStore::Cipher& cipher) {
+  DatabaseRoot empty{toHex(fromHex(randomId())), 0, std::nullopt};
   auto store = DiskStore::openOrCreate(path, encodeMetadata(empty), cipher);
   readRootFrom(store);
   return Database(std::move(store));

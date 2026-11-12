@@ -1156,3 +1156,47 @@ TEST(V2Attachments, DeepTreeStreamsAndRejectsAnOverDeepRoot) {
   EXPECT_THROW(db.getAttachment(overDigest), AttachmentError);
   EXPECT_THROW(db.insertOne("docs", {{"_id", "x"}, {"_files", {{"f", {{"digest", overDigest}, {"size", 1}}}}}}), AttachmentError);
 }
+
+// ---- key rotation ------------------------------------------------------------
+
+TEST(V2Encryption, KeyRingKnownAnswersAndRotation) {
+  auto vectors = loadJson(kFixtures / "vectors.json").at("encryption").at("ring");
+  KeyRing ring;
+  ring.nameSecret = fromHex(vectors.at("nameSecret"));
+  for (auto it = vectors.at("dataKeys").begin(); it != vectors.at("dataKeys").end(); ++it)
+    ring.dataKeys[std::stoi(it.key())] = fromHex(it.value());
+  ring.currentVersion = vectors.at("currentVersion");
+  auto digest = vectors.at("digest").get<std::string>();
+  auto plaintext = fromHex(vectors.at("plaintext"));
+  auto nonce = fromHex(vectors.at("nonce"));
+
+  AesCipher rotated(ring);
+  EXPECT_EQ(rotated.physicalName(digest), vectors.at("physicalName").get<std::string>());
+  EXPECT_EQ(toHex(rotated.seal(digest, plaintext, nonce)), vectors.at("sealedVersion2").get<std::string>());
+  EXPECT_EQ(toHex(rotated.sealHead(digest, nonce)), vectors.at("sealedHeadVersion2").get<std::string>());
+  // Version 1 blocks written before the rotation still open.
+  EXPECT_EQ(rotated.open(digest, fromHex(vectors.at("sealedVersion1"))), plaintext);
+  EXPECT_EQ(rotated.open(digest, fromHex(vectors.at("sealedVersion2"))), plaintext);
+
+  KeyRing oldRing{ring.nameSecret, {{1, ring.dataKeys.at(1)}}, 1};
+  AesCipher old(oldRing);
+  EXPECT_EQ(old.physicalName(digest), rotated.physicalName(digest));  // names do not move
+  EXPECT_EQ(old.open(digest, fromHex(vectors.at("sealedVersion1"))), plaintext);
+  EXPECT_THROW(old.open(digest, fromHex(vectors.at("sealedVersion2"))), DecryptionError);
+  KeyRing newOnlyRing{ring.nameSecret, {{2, ring.dataKeys.at(2)}}, 2};
+  EXPECT_THROW(AesCipher(newOnlyRing).open(digest, fromHex(vectors.at("sealedVersion1"))), DecryptionError);
+  EXPECT_THROW(AesCipher(KeyRing{ring.nameSecret, {{1, ring.dataKeys.at(1)}}, 2}), std::runtime_error);
+
+  // A directory rotates: old data stays readable, the old key is shut out.
+  TempDir tmp;
+  auto path = (tmp.path / "db").string();
+  {
+    auto db = Database::openWithKeyRing(path, oldRing);
+    db.insertMany("c", {{{"_id", "a"}, {"v", 1}}, {{"_id", "b"}, {"v", 2}}});
+  }
+  auto db = Database::openWithKeyRing(path, ring);
+  EXPECT_EQ((*db.findById("c", "a"))["v"], 1);
+  db.insertOne("c", {{"_id", "late"}, {"v", 3}});
+  EXPECT_EQ(db.findAll("c").size(), 3u);
+  EXPECT_THROW(Database::openWithKeyRing(path, oldRing), StorageError);
+}

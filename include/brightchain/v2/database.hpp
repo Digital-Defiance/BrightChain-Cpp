@@ -128,6 +128,8 @@ class Database {
   /// Open or create a database. With `encryptionKey` (32 bytes) every block is encrypted at rest
   /// (spec section 10). Do not set it over a store that already encrypts.
   static Database open(const std::string& path, const std::optional<Bytes>& encryptionKey = std::nullopt);
+  /// Same with a key ring, so the data key can rotate while block names stay put.
+  static Database openWithKeyRing(const std::string& path, const KeyRing& ring);
 
   /// Copy this database into a new directory as an independent replica: same database ID, new
   /// writer ID, so both sides can write and later merge each other.
@@ -195,6 +197,7 @@ class Database {
 
  private:
   explicit Database(DiskStore store);
+  static Database openWithCipher(const std::string& path, const DiskStore::Cipher& cipher);
   DatabaseRoot readRoot() const;
 
   DiskStore store_;
