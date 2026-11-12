@@ -3,6 +3,7 @@
 #include <openssl/rand.h>
 
 #include "brightchain/v2/index_tree.hpp"
+#include "brightchain/v2/reachable.hpp"
 
 #include <algorithm>
 #include <set>
@@ -406,6 +407,30 @@ MergeResult Database::merge(const BlockSource& source, const std::optional<Diges
     }
   });
   notifier_->bump();
+  return result;
+}
+
+GcResult Database::collectGarbage(const GcOptions& options) {
+  GcResult result;
+  store_.withWriteLock([&](DiskStore::Writer&) {
+    std::vector<Digest> roots{store_.readHead()};
+    roots.insert(roots.end(), options.keepRoots.begin(), options.keepRoots.end());
+    auto reachable = collectReachable(store_, roots);
+    std::set<std::string> keep;
+    for (const auto& d : reachable) keep.insert(store_.fileNameOf(d));
+    auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    for (const auto& file : store_.listBlockFiles()) {
+      if (keep.count(file.name)) {
+        result.keptReachable++;
+      } else if (now - file.modifiedMs < options.graceMs) {
+        result.keptRecent++;
+      } else {
+        result.removed++;
+        result.bytesFreed += file.bytes;
+        if (!options.dryRun) store_.deleteBlockFile(file.name);
+      }
+    }
+  });
   return result;
 }
 

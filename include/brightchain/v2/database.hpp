@@ -37,6 +37,17 @@ struct WriteOp {
   std::vector<std::string> fields;   // CreateIndex
 };
 
+struct GcOptions {
+  std::vector<Digest> keepRoots;  // older roots to keep readable, besides the current one
+  std::int64_t graceMs = 3'600'000;  // keep unreachable blocks younger than this
+  bool dryRun = false;
+};
+
+struct GcResult {
+  std::size_t keptReachable = 0, keptRecent = 0, removed = 0;
+  std::uint64_t bytesFreed = 0;
+};
+
 struct IndexInfo {
   std::string name;
   std::vector<std::string> fields;
@@ -144,6 +155,11 @@ class Database {
   MergeResult merge(const BlockSource& source, const std::optional<Digest>& root = std::nullopt);
   /// This database as a block source, for BlockServer or another database's merge.
   std::shared_ptr<const BlockSource> blockSource() const;
+
+  /// Delete blocks that no retained root reaches (the current root, `keepRoots`, and everything they
+  /// reach, including documents, indexes and attachments). Runs under the write lock. Unreachable
+  /// blocks younger than `graceMs` are kept so a stored file has time to be referenced by a document.
+  GcResult collectGarbage(const GcOptions& options = {});
 
   /// The digest of the current database state. Equal roots mean equal data.
   Digest root() const;

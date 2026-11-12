@@ -85,6 +85,12 @@ int main(int argc, char** argv) {
       HttpBlockSource source(argv[3], argc >= 5 ? std::optional<std::string>(argv[4]) : std::nullopt);
       auto result = db.merge(source);
       std::cout << json{{"previous", result.previous}, {"root", result.root}, {"adopted", result.adopted}}.dump() << std::endl;
+    } else if (command == "gc" && argc >= 3) {
+      // gc [graceMs]: delete blocks the current root does not reach
+      GcOptions options;
+      options.graceMs = argc >= 4 ? std::stoll(argv[3]) : 3'600'000;
+      auto r = db.collectGarbage(options);
+      std::cout << json{{"keptReachable", r.keptReachable}, {"keptRecent", r.keptRecent}, {"removed", r.removed}}.dump() << std::endl;
     } else if (command == "root" && argc == 3) {
       std::cout << json{{"root", db.root()}}.dump() << std::endl;
     } else if (command == "diff" && argc == 5) {

@@ -1200,3 +1200,94 @@ TEST(V2Encryption, KeyRingKnownAnswersAndRotation) {
   EXPECT_EQ(db.findAll("c").size(), 3u);
   EXPECT_THROW(Database::openWithKeyRing(path, oldRing), StorageError);
 }
+
+// ---- garbage collection ------------------------------------------------------
+
+namespace {
+
+std::size_t countBlocks(const std::string& path) { return filesUnder(fs::path(path) / "blocks").size(); }
+
+void ageAllBlocks(const std::string& path, std::chrono::hours age) {
+  for (const auto& file : filesUnder(fs::path(path) / "blocks")) {
+    fs::last_write_time(file, fs::file_time_type::clock::now() - age);
+  }
+}
+
+}  // namespace
+
+TEST(V2Gc, RemovesUnreachableBlocksAndKeepsTheLiveDatabase) {
+  TempDir tmp;
+  auto path = (tmp.path / "db").string();
+  auto db = Database::open(path);
+  db.createIndex("docs", "by_n", {"n"});
+  std::vector<json> docs;
+  for (int i = 0; i < 300; i++) docs.push_back({{"_id", "d" + std::to_string(i)}, {"n", i}});
+  db.insertMany("docs", docs);
+  for (int round = 0; round < 5; round++)
+    for (int i = 0; i < 20; i++)
+      db.replaceById("docs", "d" + std::to_string(i), {{"_id", "d" + std::to_string(i)}, {"n", 1000 * (round + 1) + i}});
+  db.deleteById("docs", "d299");
+  auto before = countBlocks(path);
+
+  GcOptions options;
+  options.graceMs = 0;
+  options.dryRun = true;
+  auto dry = db.collectGarbage(options);
+  EXPECT_GT(dry.removed, 50u);
+  EXPECT_EQ(countBlocks(path), before);
+  options.dryRun = false;
+  auto real = db.collectGarbage(options);
+  EXPECT_EQ(real.removed, dry.removed);
+  EXPECT_EQ(countBlocks(path), before - real.removed);
+  EXPECT_EQ(db.findAll("docs").size(), 299u);
+  EXPECT_EQ(db.findByIndex("docs", "by_n", IndexQuery::fromJson({{"gte", 5000}, {"lt", 5020}})).size(), 20u);
+  EXPECT_EQ(db.collectGarbage(options).removed, 0u);
+}
+
+TEST(V2Gc, KeepsRequestedRootsAttachmentsAndHonoursTheGracePeriod) {
+  TempDir tmp;
+  auto path = (tmp.path / "db").string();
+  auto db = Database::open(path);
+  std::vector<json> docs;
+  for (int i = 0; i < 50; i++) docs.push_back({{"_id", "d" + std::to_string(i)}, {"v", 0}});
+  db.insertMany("c", docs);
+  auto keep = db.root();
+  db.replaceById("c", "d1", {{"_id", "d1"}, {"v", 1}});
+  auto lose = db.root();
+  db.replaceById("c", "d2", {{"_id", "d2"}, {"v", 2}});
+
+  auto used = db.putAttachment(Bytes(1'500'000, 1));
+  auto unused = db.putAttachment(Bytes(1'500'000, 2));
+  db.insertOne("files", {{"_id", "f"}, {"_files", {{"x", {{"digest", used.digest}, {"size", used.size}}}}}});
+
+  GcOptions recent;  // default grace: everything was just written
+  recent.keepRoots = {keep};
+  auto kept = db.collectGarbage(recent);
+  EXPECT_EQ(kept.removed, 0u);
+  EXPECT_GT(kept.keptRecent, 0u);
+  EXPECT_EQ(db.getAttachment(unused.digest).size(), unused.size);
+
+  ageAllBlocks(path, std::chrono::hours(2));
+  auto result = db.collectGarbage(recent);
+  EXPECT_GT(result.removed, 0u);
+  EXPECT_THROW(db.getAttachment(unused.digest), StorageError);           // unreferenced file gone
+  EXPECT_EQ(db.getAttachment(used.digest).size(), used.size);            // referenced file kept
+  EXPECT_EQ((*db.at(keep).findById("c", "d1"))["v"], 0);                 // requested root still readable
+  EXPECT_THROW(db.at(lose), MissingBlockError);                          // the other old root is gone
+  EXPECT_EQ((*db.findById("c", "d1"))["v"], 1);
+}
+
+TEST(V2Gc, CollectsAnEncryptedStore) {
+  TempDir tmp;
+  auto path = (tmp.path / "db").string();
+  auto db = Database::open(path, testKey());
+  std::vector<json> docs;
+  for (int i = 0; i < 40; i++) docs.push_back({{"_id", "d" + std::to_string(i)}, {"v", 0}});
+  db.insertMany("c", docs);
+  for (int i = 0; i < 10; i++) db.replaceById("c", "d" + std::to_string(i), {{"_id", "d" + std::to_string(i)}, {"v", 1}});
+  GcOptions options;
+  options.graceMs = 0;
+  EXPECT_GT(db.collectGarbage(options).removed, 0u);
+  EXPECT_EQ(db.findAll("c").size(), 40u);
+  EXPECT_EQ((*Database::open(path, testKey()).findById("c", "d3"))["v"], 1);
+}

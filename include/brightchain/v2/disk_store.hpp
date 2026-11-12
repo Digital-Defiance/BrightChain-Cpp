@@ -6,6 +6,7 @@
 #include <memory>
 #include <set>
 #include <stdexcept>
+#include <vector>
 #include <string>
 
 #include "brightchain/v2/block_source.hpp"
@@ -65,6 +66,18 @@ class DiskStore : public BlockSource {
   Bytes readBlock(const Digest& digest) const override;
   /// Whether a block file exists. It does not read or verify the block.
   bool hasBlock(const Digest& digest) const;
+  /// The file name a logical digest is stored under (the digest itself, or its keyed name when encrypted).
+  std::string fileNameOf(const Digest& digest) const;
+
+  struct BlockFile {
+    std::string name;
+    std::uint64_t bytes = 0;
+    std::int64_t modifiedMs = 0;
+  };
+  /// Every file under blocks/, including leftover temporary files.
+  std::vector<BlockFile> listBlockFiles() const;
+  /// Remove one block file by its on-disk name. The caller must hold the write lock.
+  void deleteBlockFile(const std::string& name) const;
   /// Run `body` holding the exclusive write lock.
   void withWriteLock(const std::function<void(Writer&)>& body);
 

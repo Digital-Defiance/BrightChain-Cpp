@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include <cerrno>
+#include <chrono>
 #include <cstring>
 #include <filesystem>
 
@@ -190,6 +191,42 @@ bool DiskStore::hasBlock(const Digest& digest) const {
     fail("Cannot stat block", digest);
   }
   return S_ISREG(st.st_mode);
+}
+
+std::string DiskStore::fileNameOf(const Digest& digest) const { return blockLocation(digest).second; }
+
+std::vector<DiskStore::BlockFile> DiskStore::listBlockFiles() const {
+  std::vector<BlockFile> out;
+  for (const auto& prefix : fs::directory_iterator(path_ + "/blocks")) {
+    if (!prefix.is_directory()) continue;
+    for (const auto& entry : fs::directory_iterator(prefix.path())) {
+      if (!entry.is_regular_file()) continue;
+      auto mtime = std::chrono::duration_cast<std::chrono::milliseconds>(
+                       fs::last_write_time(entry.path()).time_since_epoch())
+                       .count();
+      // file_clock and system_clock share a Unix-epoch offset on the platforms we build for;
+      // convert through now() to stay correct where they do not.
+      auto skew = std::chrono::duration_cast<std::chrono::milliseconds>(
+                      std::chrono::system_clock::now().time_since_epoch() -
+                      fs::file_time_type::clock::now().time_since_epoch())
+                      .count();
+      out.push_back({entry.path().filename().string(), std::uint64_t(entry.file_size()), std::int64_t(mtime + skew)});
+    }
+  }
+  return out;
+}
+
+void DiskStore::deleteBlockFile(const std::string& name) const {
+  if (!name.empty() && name[0] == '.') {
+    // A leftover temporary file may sit in any prefix directory.
+    for (const auto& prefix : fs::directory_iterator(path_ + "/blocks")) {
+      std::error_code ignored;
+      fs::remove(prefix.path() / name, ignored);
+    }
+    return;
+  }
+  if (!isLowerHex(name, 128)) throw StorageError("Invalid block file name");
+  if (::unlink((path_ + "/blocks/" + name.substr(0, 2) + "/" + name).c_str()) != 0) fail("Cannot delete block", name);
 }
 
 void DiskStore::publishHead(const Digest& digest, std::set<std::string>& dirty) const {
