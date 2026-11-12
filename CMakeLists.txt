@@ -21,6 +21,7 @@ add_subdirectory(src)
 if(BRIGHTCHAIN_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+    add_subdirectory(tests/v2)
 endif()
 
 # Examples

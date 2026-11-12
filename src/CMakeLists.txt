@@ -98,3 +98,6 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/brightchain
 
 # Gossip protocol library
 add_subdirectory(gossip)
+
+# BrightDB storage format v2
+add_subdirectory(v2)
