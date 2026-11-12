@@ -32,6 +32,8 @@ class DiskStore {
   class Writer {
    public:
     Digest writeBlock(const Bytes& payload);
+    /// Make every block written so far durable without publishing a head.
+    void syncBlocks();
     void publishHead(const Digest& digest);
 
    private:
@@ -53,12 +55,15 @@ class DiskStore {
   Digest readHead() const;
   /// Read and verify a block against its digest.
   Bytes readBlock(const Digest& digest) const;
+  /// Whether a block file exists. It does not read or verify the block.
+  bool hasBlock(const Digest& digest) const;
   /// Run `body` holding the exclusive write lock.
   void withWriteLock(const std::function<void(Writer&)>& body);
 
  private:
   DiskStore(std::string path, std::string writerId) : path_(std::move(path)), writerId_(std::move(writerId)) {}
   Digest installBlock(const Bytes& payload, std::set<std::string>& dirty) const;
+  void syncDirty(std::set<std::string>& dirty) const;
   void publishHead(const Digest& digest, std::set<std::string>& dirty) const;
 
   std::string path_;

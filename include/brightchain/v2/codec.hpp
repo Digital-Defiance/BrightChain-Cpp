@@ -21,6 +21,12 @@ constexpr std::size_t kMaxKeyBytes = 1024;
 constexpr std::size_t kDigestBytes = 64;
 constexpr std::size_t kLeafHeaderBytes = 7;
 constexpr std::size_t kRecordHeaderBytes = 2 + 8 + 16 + 1;
+constexpr std::size_t kMaxIndexKeyBytes = 2048;
+constexpr std::size_t kMaxIndexFields = 8;
+constexpr std::size_t kMaxFieldPathBytes = 256;
+/// Attachment chunk size: every chunk but the last is exactly this long.
+constexpr std::size_t kBlobChunkBytes = 1'048'576;
+constexpr std::size_t kMaxBlobChunks = (kMaxMetadataBytes - 5 - 8 - 2) / 64;
 
 using Bytes = std::vector<std::uint8_t>;
 /// Lowercase SHA3-512 hex (128 digits).
@@ -53,6 +59,7 @@ struct DatabaseRoot {
 struct CollectionRoot {
   Version generation;
   std::optional<Digest> primary;
+  std::optional<Digest> indexes;  // digest of the index definitions block
 };
 
 struct BranchChild {
@@ -72,7 +79,37 @@ struct Leaf {
   std::vector<Record> records;
 };
 
-using Metadata = std::variant<DatabaseRoot, CollectionRoot, Branch, Leaf>;
+struct IndexDefinition {
+  std::string name;
+  std::vector<std::string> fields;  // dotted paths, in index order
+  std::optional<Digest> root;       // root of the entry tree; nullopt while empty
+};
+
+struct IndexSet {
+  std::vector<IndexDefinition> definitions;
+};
+
+/// Encoded index keys in ascending byte order.
+struct IndexLeaf {
+  std::vector<Bytes> entries;
+};
+
+struct IndexBranch {
+  std::vector<int> skip;  // nibbles shared by every key below this branch
+  std::vector<BranchChild> children;
+};
+
+struct Blob {
+  std::uint64_t size = 0;
+  std::vector<Digest> chunks;
+};
+
+using Metadata = std::variant<DatabaseRoot, CollectionRoot, Branch, Leaf, IndexSet, IndexLeaf, IndexBranch, Blob>;
+
+/// Strict UTF-8 validation: no overlongs, no surrogates, nothing above U+10FFFF.
+bool isValidUtf8(const std::string& s);
+/// Bytes an index entry occupies in a leaf and in branch byte counts.
+inline std::size_t indexEntryBytes(const Bytes& key) { return 2 + key.size(); }
 
 std::string toHex(const Bytes& bytes);
 Bytes fromHex(const std::string& hex);

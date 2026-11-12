@@ -7,6 +7,7 @@
 #include <charconv>
 #include <cmath>
 #include <cstring>
+#include <set>
 
 namespace brightchain::v2 {
 
@@ -74,6 +75,11 @@ class Writer {
     u8(d ? 1 : 0);
     if (d) digest(*d);
   }
+  /// A u16-length-prefixed byte string.
+  void prefixed(const Bytes& b) {
+    u16(std::uint16_t(b.size()));
+    bytes(b);
+  }
   void version(const Version& v) {
     if (v.counter == 0 || v.writerId == kZeroWriter)
       throw CodecError("A version requires a positive counter and a nonzero writer ID");
@@ -125,6 +131,12 @@ class Reader {
     const auto* p = take(len);
     return std::string(reinterpret_cast<const char*>(p), len);
   }
+  Bytes bytesOf(std::size_t n) { const auto* p = take(n); return Bytes(p, p + n); }
+  Bytes indexKey() {
+    auto len = u16();
+    if (len < 1 || len > kMaxIndexKeyBytes) throw CodecError("A key must occupy 1-2048 bytes");
+    return bytesOf(len);
+  }
   void finish() const {
     if (off_ != buf_.size()) throw CodecError("Trailing bytes after metadata block");
   }
@@ -147,6 +159,67 @@ void validateBranch(const std::vector<BranchChild>& children) {
   }
   if (total <= kMaxMetadataBytes - kLeafHeaderBytes)
     throw CodecError("A branch must collapse when its records fit in a leaf");
+}
+
+
+// ---- index and blob blocks ---------------------------------------------------
+
+constexpr std::uint64_t kLeafRecordBudget = kMaxMetadataBytes - kLeafHeaderBytes;
+
+Bytes validateIndexFieldPath(const std::string& path) {
+  auto bytes = encodeKey(path);
+  if (bytes.size() > kMaxFieldPathBytes) throw CodecError("An index field path must occupy 1-256 UTF-8 bytes");
+  return bytes;
+}
+
+void validateIndexSet(const std::vector<IndexDefinition>& definitions) {
+  if (definitions.empty()) throw CodecError("An index set must contain at least one index");
+  const std::string* previous = nullptr;
+  for (const auto& d : definitions) {
+    encodeKey(d.name);
+    if (previous && compareKeys(*previous, d.name) >= 0) throw CodecError("Index names must be unique and ascending");
+    previous = &d.name;
+    if (d.fields.empty() || d.fields.size() > kMaxIndexFields) throw CodecError("An index must have 1-8 fields");
+    std::set<std::string> unique(d.fields.begin(), d.fields.end());
+    if (unique.size() != d.fields.size()) throw CodecError("An index cannot repeat a field");
+    for (const auto& f : d.fields) validateIndexFieldPath(f);
+  }
+}
+
+void validateIndexKeys(const std::vector<Bytes>& entries) {
+  if (entries.empty()) throw CodecError("An index leaf must contain at least one entry");
+  const Bytes* previous = nullptr;
+  for (const auto& key : entries) {
+    if (key.empty() || key.size() > kMaxIndexKeyBytes) throw CodecError("An index key must occupy 1-2048 bytes");
+    if (previous) {
+      if (!(*previous < key)) throw CodecError("Index keys must be unique and ascending");
+      if (key.size() > previous->size() && std::equal(previous->begin(), previous->end(), key.begin()))
+        throw CodecError("An index key cannot be a prefix of another");
+    }
+    previous = &key;
+  }
+}
+
+void validateIndexBranch(const std::vector<int>& skip, const std::vector<BranchChild>& children) {
+  if (skip.size() > kMaxIndexKeyBytes * 2) throw CodecError("An index branch prefix is too long");
+  for (int n : skip) if (n < 0 || n > 15) throw CodecError("Invalid index branch prefix nibble");
+  if (children.size() < 2 || children.size() > 16) throw CodecError("An index branch must contain 2-16 children");
+  unsigned __int128 total = 0;
+  int previous = -1;
+  for (const auto& c : children) {
+    if (c.nibble <= previous || c.nibble > 15) throw CodecError("Invalid or duplicate branch nibble");
+    previous = c.nibble;
+    if (c.recordBytes == 0) throw CodecError("Branch child record bytes must be positive");
+    total += c.recordBytes;
+    if (total > UINT64_MAX) throw CodecError("Branch record byte total exceeds the unsigned 64-bit range");
+  }
+  if (total <= kLeafRecordBudget) throw CodecError("A branch must collapse when its entries fit in a leaf");
+}
+
+void validateBlob(std::uint64_t size, const std::vector<Digest>& chunks) {
+  std::uint64_t expected = size / kBlobChunkBytes + (size % kBlobChunkBytes ? 1 : 0);
+  if (chunks.size() > kMaxBlobChunks || chunks.size() != expected)
+    throw CodecError("Blob chunk count does not match its size");
 }
 
 // ---- JSON canonicalization -------------------------------------------------
@@ -295,6 +368,8 @@ std::string validateDocumentKey(const nlohmann::json& id, const std::optional<st
 
 // ---- public ----------------------------------------------------------------
 
+bool isValidUtf8(const std::string& s) { return validUtf8(s); }
+
 std::string toHex(const Bytes& bytes) {
   static const char* hex = "0123456789abcdef";
   std::string s;
@@ -355,7 +430,7 @@ Bytes encodeMetadata(const Metadata& block) {
   if (const auto* d = std::get_if<DatabaseRoot>(&block)) {
     w.u8(0x01); w.id(d->databaseId); w.u64(d->clock); w.ref(d->catalog);
   } else if (const auto* c = std::get_if<CollectionRoot>(&block)) {
-    w.u8(0x02); w.version(c->generation); w.ref(c->primary);
+    w.u8(0x02); w.version(c->generation); w.ref(c->primary); w.ref(c->indexes);
   } else if (const auto* b = std::get_if<Branch>(&block)) {
     w.u8(0x03);
     auto children = b->children;
@@ -365,6 +440,45 @@ Bytes encodeMetadata(const Metadata& block) {
     for (auto& ch : children) bitmap |= std::uint16_t(1u << ch.nibble);
     w.u16(bitmap);
     for (auto& ch : children) { w.u64(ch.recordBytes); w.digest(ch.digest); }
+  } else if (const auto* set = std::get_if<IndexSet>(&block)) {
+    auto definitions = set->definitions;
+    std::sort(definitions.begin(), definitions.end(),
+              [](const IndexDefinition& a, const IndexDefinition& b) { return compareKeys(a.name, b.name) < 0; });
+    validateIndexSet(definitions);
+    w.u8(0x06);
+    w.u16(std::uint16_t(definitions.size()));
+    for (const auto& d : definitions) {
+      w.prefixed(encodeKey(d.name));
+      w.u8(std::uint8_t(d.fields.size()));
+      for (const auto& f : d.fields) w.prefixed(validateIndexFieldPath(f));
+      w.ref(d.root);
+    }
+  } else if (const auto* il = std::get_if<IndexLeaf>(&block)) {
+    auto entries = il->entries;
+    std::sort(entries.begin(), entries.end());
+    validateIndexKeys(entries);
+    w.u8(0x07);
+    w.u16(std::uint16_t(entries.size()));
+    for (const auto& k : entries) w.prefixed(k);
+  } else if (const auto* ib = std::get_if<IndexBranch>(&block)) {
+    auto children = ib->children;
+    std::sort(children.begin(), children.end(), [](auto& x, auto& y) { return x.nibble < y.nibble; });
+    validateIndexBranch(ib->skip, children);
+    w.u8(0x08);
+    w.u16(std::uint16_t(ib->skip.size()));
+    Bytes packed((ib->skip.size() + 1) / 2, 0);
+    for (std::size_t i = 0; i < ib->skip.size(); i++) packed[i >> 1] |= std::uint8_t(i % 2 == 0 ? ib->skip[i] << 4 : ib->skip[i]);
+    w.bytes(packed);
+    std::uint16_t bitmap = 0;
+    for (auto& ch : children) bitmap |= std::uint16_t(1u << ch.nibble);
+    w.u16(bitmap);
+    for (auto& ch : children) { w.u64(ch.recordBytes); w.digest(ch.digest); }
+  } else if (const auto* blob = std::get_if<Blob>(&block)) {
+    validateBlob(blob->size, blob->chunks);
+    w.u8(0x09);
+    w.u64(blob->size);
+    w.u16(std::uint16_t(blob->chunks.size()));
+    for (const auto& c : blob->chunks) w.digest(c);
   } else {
     const auto& leaf = std::get<Leaf>(block);
     if (leaf.records.empty()) throw CodecError("A leaf must contain at least one record");
@@ -406,7 +520,7 @@ Metadata decodeMetadata(const Bytes& bytes, const std::optional<Digest>& expecte
     }
     case 0x02: {
       CollectionRoot c;
-      c.generation = r.version(); c.primary = r.ref();
+      c.generation = r.version(); c.primary = r.ref(); c.indexes = r.ref();
       result = c;
       break;
     }
@@ -441,6 +555,62 @@ Metadata decodeMetadata(const Bytes& bytes, const std::optional<Digest>& expecte
         leaf.records.push_back(std::move(rec));
       }
       result = std::move(leaf);
+      break;
+    }
+    case 0x06: {
+      IndexSet set;
+      auto count = r.u16();
+      for (int i = 0; i < count; i++) {
+        IndexDefinition d;
+        d.name = r.key();
+        if (!validUtf8(d.name)) throw CodecError("Malformed UTF-8");
+        auto fieldCount = r.u8();
+        for (int f = 0; f < fieldCount; f++) {
+          auto field = r.key();
+          if (!validUtf8(field)) throw CodecError("Malformed UTF-8");
+          d.fields.push_back(std::move(field));
+        }
+        d.root = r.ref();
+        set.definitions.push_back(std::move(d));
+      }
+      validateIndexSet(set.definitions);
+      result = std::move(set);
+      break;
+    }
+    case 0x07: {
+      IndexLeaf leaf;
+      auto count = r.u16();
+      for (int i = 0; i < count; i++) leaf.entries.push_back(r.indexKey());
+      validateIndexKeys(leaf.entries);
+      result = std::move(leaf);
+      break;
+    }
+    case 0x08: {
+      IndexBranch branch;
+      auto length = r.u16();
+      if (length > kMaxIndexKeyBytes * 2) throw CodecError("An index branch prefix is too long");
+      auto packed = r.bytesOf((length + 1) / 2);
+      for (int i = 0; i < length; i++) branch.skip.push_back(i % 2 == 0 ? packed[i >> 1] >> 4 : packed[i >> 1] & 15);
+      if (length % 2 == 1 && (packed.back() & 15) != 0) throw CodecError("Nonzero padding in an index branch prefix");
+      auto bitmap = r.u16();
+      for (int n = 0; n < 16; n++) {
+        if (bitmap & (1u << n)) {
+          BranchChild ch;
+          ch.nibble = n; ch.recordBytes = r.u64(); ch.digest = r.digest();
+          branch.children.push_back(ch);
+        }
+      }
+      validateIndexBranch(branch.skip, branch.children);
+      result = std::move(branch);
+      break;
+    }
+    case 0x09: {
+      Blob blob;
+      blob.size = r.u64();
+      auto count = r.u16();
+      for (int i = 0; i < count; i++) blob.chunks.push_back(r.digest());
+      validateBlob(blob.size, blob.chunks);
+      result = std::move(blob);
       break;
     }
     default:

@@ -13,8 +13,10 @@
 #include <stdexcept>
 #include <vector>
 
+#include "brightchain/v2/attachments.hpp"
 #include "brightchain/v2/codec.hpp"
 #include "brightchain/v2/disk_store.hpp"
+#include "brightchain/v2/index_key.hpp"
 #include "brightchain/v2/tree.hpp"
 
 namespace brightchain::v2 {
@@ -25,11 +27,18 @@ class DuplicateKeyError : public std::runtime_error {
 };
 
 struct WriteOp {
-  enum class Type { CreateCollection, DropCollection, Insert, Replace, Delete };
+  enum class Type { CreateCollection, DropCollection, Insert, Replace, Delete, CreateIndex, DropIndex };
   Type type;
   std::string collection;
   std::string id;          // Replace / Delete
   nlohmann::json document;  // Insert / Replace
+  std::string name;                  // CreateIndex / DropIndex
+  std::vector<std::string> fields;   // CreateIndex
+};
+
+struct IndexInfo {
+  std::string name;
+  std::vector<std::string> fields;
 };
 
 struct ReplaceResult {
@@ -98,6 +107,12 @@ class Snapshot {
   std::vector<nlohmann::json> findAll(const std::string& collection) const;
   /// The live collection root, or nullopt when absent in this state.
   std::optional<CollectionRoot> collectionRoot(const std::string& collection) const;
+  /// Index definitions on a collection.
+  std::vector<IndexInfo> listIndexes(const std::string& collection) const;
+  /// Documents found through an ordered index, in index order. A document found through
+  /// several entries (an array field) is returned once.
+  std::vector<nlohmann::json> findByIndex(const std::string& collection, const std::string& index,
+                                          const IndexQuery& query = {}) const;
   std::optional<nlohmann::json> document(const Record& record, const CollectionRoot& collection) const;
 
  private:
@@ -135,6 +150,22 @@ class Database {
   std::optional<nlohmann::json> findById(const std::string& collection, const std::string& id);
   /// Every live document in a collection (trie order).
   std::vector<nlohmann::json> findAll(const std::string& collection);
+
+  std::vector<IndexInfo> listIndexes(const std::string& collection) { return snapshot().listIndexes(collection); }
+  std::vector<nlohmann::json> findByIndex(const std::string& collection, const std::string& index,
+                                          const IndexQuery& query = {}) {
+    return snapshot().findByIndex(collection, index, query);
+  }
+  /// Build an index over the existing documents and keep it current from then on.
+  void createIndex(const std::string& collection, const std::string& name, const std::vector<std::string>& fields);
+  void dropIndex(const std::string& collection, const std::string& name);
+
+  /// Store a file (up to 63 MiB) and return a reference to put under `_files` in a document.
+  /// The blocks are durable at once but are not part of the database until a committed
+  /// document references them.
+  AttachmentRef putAttachment(const Bytes& bytes, const std::optional<std::string>& type = std::nullopt);
+  Bytes getAttachment(const Digest& digest) const;
+  void streamAttachment(const Digest& digest, const std::function<void(const Bytes&)>& visit) const;
 
   std::string insertOne(const std::string& collection, const nlohmann::json& document);
   std::vector<std::string> insertMany(const std::string& collection, const std::vector<nlohmann::json>& documents);

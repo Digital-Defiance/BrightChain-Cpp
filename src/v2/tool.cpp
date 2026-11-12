@@ -1,7 +1,9 @@
 // Usage: brightdb_v2_tool <write|delete|dump|loop> <directory> [args...]
 // Mirrors brightchain-db/test-support/v2-worker.ts. Prints one JSON line.
 #include <algorithm>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 
 #include "brightchain/v2/database.hpp"
 
@@ -31,6 +33,31 @@ int main(int argc, char** argv) {
       auto names = db.listCollections();
       for (const auto& name : names) out[name] = db.findAll(name);
       std::cout << out.dump() << std::endl;
+    } else if (command == "insertjson" && argc == 5) {
+      // insertjson <collection> <json>
+      std::cout << json{{"insertedId", db.insertOne(argv[3], json::parse(argv[4]))}}.dump() << std::endl;
+    } else if (command == "createindex" && argc >= 6) {
+      // createindex <collection> <name> <field>...
+      db.createIndex(argv[3], argv[4], std::vector<std::string>(argv + 5, argv + argc));
+      std::cout << R"({"ok":true})" << std::endl;
+    } else if (command == "findindex" && argc == 6) {
+      // findindex <collection> <index> <query json>: ids in index order
+      std::vector<std::string> ids;
+      for (const auto& d : db.findByIndex(argv[3], argv[4], IndexQuery::fromJson(json::parse(argv[5]))))
+        ids.push_back(d.at("_id").get<std::string>());
+      std::cout << json(ids).dump() << std::endl;
+    } else if (command == "putfile" && argc >= 4) {
+      // putfile <path> [type]: prints the reference to put under _files
+      std::ifstream in(argv[3], std::ios::binary);
+      Bytes bytes((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+      auto ref = db.putAttachment(bytes, argc >= 5 ? std::optional<std::string>(argv[4]) : std::nullopt);
+      json out{{"digest", ref.digest}, {"size", ref.size}};
+      if (ref.type) out["type"] = *ref.type;
+      std::cout << out.dump() << std::endl;
+    } else if (command == "getfile" && argc == 4) {
+      // getfile <manifest digest>: prints the size and the SHA3-512 of the content
+      auto bytes = db.getAttachment(argv[3]);
+      std::cout << json{{"size", bytes.size()}, {"sha3", digestPayload(bytes)}}.dump() << std::endl;
     } else if (command == "root" && argc == 3) {
       std::cout << json{{"root", db.root()}}.dump() << std::endl;
     } else if (command == "diff" && argc == 5) {

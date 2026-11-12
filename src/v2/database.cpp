@@ -2,6 +2,8 @@
 
 #include <openssl/rand.h>
 
+#include "brightchain/v2/index_tree.hpp"
+
 #include <algorithm>
 #include <set>
 
@@ -64,14 +66,28 @@ struct Pending {
   CollectionRoot root;
   std::map<std::string, Record> changes;
   std::optional<Version> dropVersion;
+  /// Index definitions as of this batch; nullopt until first needed.
+  std::optional<std::vector<IndexDefinition>> definitions;
+  /// Net entry changes per index (hex key -> key), relative to the index root in the base state.
+  std::map<std::string, std::map<std::string, Bytes>> indexAdds, indexRemoves;
+  bool indexesChanged = false;
 };
+
+std::vector<IndexDefinition> readIndexDefinitions(const DiskStore& store, const CollectionRoot& collection) {
+  if (!collection.indexes) return {};
+  auto meta = decodeMetadata(store.readBlock(*collection.indexes), *collection.indexes);
+  const auto* set = std::get_if<IndexSet>(&meta);
+  if (!set) throw StorageError("BrightDB collection indexes do not reference an index set");
+  return set->definitions;
+}
 
 /// Stages catalog and primary changes against one pinned database root.
 class WriteBatch {
  public:
   WriteBatch(const DiskStore& store, DiskStore::Writer& writer, DatabaseRoot root)
       : store_(store), writer_(writer), root_(std::move(root)), blocks_(store, writer),
-        catalog_(blocks_, LeafKind::Catalog), primary_(blocks_, LeafKind::Primary), clock_(root_.clock) {}
+        catalog_(blocks_, LeafKind::Catalog), primary_(blocks_, LeafKind::Primary), indexTree_(blocks_),
+        clock_(root_.clock) {}
 
   void createCollection(const std::string& name) {
     if (collection(name).live) throw std::runtime_error("BrightDB collection already exists: " + name);
@@ -87,10 +103,12 @@ class WriteBatch {
   }
   std::string insert(const std::string& name, const nlohmann::json& doc) {
     auto encoded = encodeDocumentForWrite(doc, randomId());
+    validateFileReferences(store_, doc);
     auto& existing = collection(name);
     auto& coll = existing.live ? existing : addCollection(name);
     auto record = document(coll, encoded.key);
     if (record && record->target) throw DuplicateKeyError(encoded.key);
+    maintainIndexes(coll, encoded.key, std::nullopt, &encoded.payload);
     stage(coll, encoded.key, digestPayload(encoded.payload), encoded.payload);
     return encoded.key;
   }
@@ -101,9 +119,13 @@ class WriteBatch {
     if (coll.live) record = document(coll, id);
     if (!coll.live || !record || !record->target) return {};
     auto encoded = encodeDocumentForWrite(doc, id, id);
+    validateFileReferences(store_, doc);
     auto target = digestPayload(encoded.payload);
     bool changed = target != *record->target;
-    if (changed) stage(coll, id, target, encoded.payload);
+    if (changed) {
+      maintainIndexes(coll, id, record->target, &encoded.payload);
+      stage(coll, id, target, encoded.payload);
+    }
     return {1, changed ? 1 : 0};
   }
   int remove(const std::string& name, const std::string& id) {
@@ -112,8 +134,50 @@ class WriteBatch {
     if (!coll.live) return 0;
     auto record = document(coll, id);
     if (!record || !record->target) return 0;
+    maintainIndexes(coll, id, record->target, nullptr);
     coll.changes[id] = Record{id, nextVersion(), std::nullopt};
     return 1;
+  }
+
+  void createIndex(const std::string& name, const std::string& indexName, const std::vector<std::string>& fields) {
+    encodeKey(indexName);
+    auto& existing = collection(name);
+    // Like inserting, creating an index creates a missing collection.
+    auto& coll = existing.live ? existing : addCollection(name);
+    auto& defs = definitions(coll);
+    for (const auto& d : defs) if (d.name == indexName) throw std::runtime_error("BrightDB index already exists: " + indexName);
+    // Validates names and field paths before any scan.
+    encodeMetadata(IndexSet{{IndexDefinition{indexName, fields, std::nullopt}}});
+
+    std::map<std::string, Bytes> entries;
+    auto addDocument = [&](const std::string& id, const nlohmann::json& doc) {
+      for (auto& key : extractIndexKeys(doc, fields, id)) entries[toHex(key)] = key;
+    };
+    std::set<std::string> seen;
+    primary_.forEach(coll.root.primary, [&](const Record& r) {
+      seen.insert(r.key);
+      auto it = coll.changes.find(r.key);
+      const Record& effective = it != coll.changes.end() ? it->second : r;
+      if (effective.target) addDocument(r.key, decodeDocument(documentBytes(*effective.target), r.key));
+    });
+    for (const auto& [id, r] : coll.changes)
+      if (!seen.count(id) && r.target) addDocument(id, decodeDocument(documentBytes(*r.target), id));
+    defs.push_back(IndexDefinition{indexName, fields, std::nullopt});
+    coll.indexAdds[indexName] = std::move(entries);
+    coll.indexRemoves[indexName] = {};
+    coll.indexesChanged = true;
+  }
+
+  void dropIndex(const std::string& name, const std::string& indexName) {
+    auto& coll = collection(name);
+    if (!coll.live) throw std::runtime_error("BrightDB collection does not exist: " + name);
+    auto& defs = definitions(coll);
+    auto it = std::find_if(defs.begin(), defs.end(), [&](const IndexDefinition& d) { return d.name == indexName; });
+    if (it == defs.end()) throw std::runtime_error("BrightDB index does not exist: " + indexName);
+    defs.erase(it);
+    coll.indexAdds.erase(indexName);
+    coll.indexRemoves.erase(indexName);
+    coll.indexesChanged = true;
   }
 
   /// Returns the new database root digest, or nullopt when nothing changed.
@@ -128,11 +192,25 @@ class WriteBatch {
         if (p.dropVersion) catalogChanges.push_back({name, *p.dropVersion, std::nullopt});
         continue;
       }
-      if (!p.created && p.changes.empty()) continue;
+      if (!p.created && p.changes.empty() && !p.indexesChanged) continue;
       std::vector<Record> records;
       for (auto& [_, r] : p.changes) records.push_back(r);
       auto primary = primary_.setMany(p.root.primary, records);
-      CollectionRoot updated{p.root.generation, primary};
+      auto indexes = p.root.indexes;
+      if (p.indexesChanged) {
+        std::vector<IndexDefinition> updatedDefinitions;
+        for (const auto& d : p.definitions.value_or(std::vector<IndexDefinition>{})) {
+          std::vector<Bytes> adds, removes;
+          if (auto it = p.indexAdds.find(d.name); it != p.indexAdds.end()) for (auto& [_, k] : it->second) adds.push_back(k);
+          if (auto it = p.indexRemoves.find(d.name); it != p.indexRemoves.end()) for (auto& [_, k] : it->second) removes.push_back(k);
+          IndexDefinition next = d;
+          next.root = indexTree_.apply(d.root, adds, removes);
+          updatedDefinitions.push_back(std::move(next));
+        }
+        indexes = updatedDefinitions.empty() ? std::nullopt
+                                             : std::optional<Digest>(writer_.writeBlock(encodeMetadata(IndexSet{updatedDefinitions})));
+      }
+      CollectionRoot updated{p.root.generation, primary, indexes};
       auto target = writer_.writeBlock(encodeMetadata(updated));
       catalogChanges.push_back({name, p.root.generation, target});
     }
@@ -160,9 +238,46 @@ class WriteBatch {
     Pending p;
     p.live = true;
     p.created = true;
-    p.root = CollectionRoot{nextVersion(), std::nullopt};
+    p.root = CollectionRoot{nextVersion(), std::nullopt, std::nullopt};
+    p.definitions = std::vector<IndexDefinition>{};
     pending_[name] = std::move(p);
     return pending_[name];
+  }
+  Bytes documentBytes(const Digest& digest) {
+    if (auto it = documents_.find(digest); it != documents_.end()) return it->second;
+    return store_.readBlock(digest);
+  }
+  std::vector<IndexDefinition>& definitions(Pending& coll) {
+    if (!coll.definitions) coll.definitions = readIndexDefinitions(store_, coll.root);
+    return *coll.definitions;
+  }
+  void noteEntry(Pending& coll, const std::string& index, const Bytes& key, bool add) {
+    auto hex = toHex(key);
+    auto& adds = coll.indexAdds[index];
+    auto& removes = coll.indexRemoves[index];
+    if (add) {
+      // Re-adding an entry removed earlier in this batch cancels the removal.
+      if (!removes.erase(hex)) adds[hex] = key;
+    } else if (!adds.erase(hex)) {
+      removes[hex] = key;
+    }
+    coll.indexesChanged = true;
+  }
+  /// Move index entries from a document's old content to its new content.
+  void maintainIndexes(Pending& coll, const std::string& id, const std::optional<Digest>& oldTarget, const Bytes* newPayload) {
+    auto& defs = definitions(coll);
+    if (defs.empty()) return;
+    std::optional<nlohmann::json> oldDoc, newDoc;
+    if (oldTarget) oldDoc = decodeDocument(documentBytes(*oldTarget), id);
+    if (newPayload) newDoc = decodeDocument(*newPayload, id);
+    for (const auto& def : defs) {
+      std::vector<Bytes> before, after;
+      if (oldDoc) before = extractIndexKeys(*oldDoc, def.fields, id);
+      if (newDoc) after = extractIndexKeys(*newDoc, def.fields, id);
+      std::set<Bytes> beforeSet(before.begin(), before.end()), afterSet(after.begin(), after.end());
+      for (const auto& k : before) if (!afterSet.count(k)) noteEntry(coll, def.name, k, false);
+      for (const auto& k : after) if (!beforeSet.count(k)) noteEntry(coll, def.name, k, true);
+    }
   }
   std::optional<Record> document(Pending& coll, const std::string& id) {
     if (auto it = coll.changes.find(id); it != coll.changes.end()) return it->second;
@@ -181,6 +296,7 @@ class WriteBatch {
   WriteBlocks blocks_;
   Tree catalog_;
   Tree primary_;
+  IndexTree indexTree_;
   std::uint64_t clock_;
   std::map<std::string, Pending> pending_;
   std::map<Digest, Bytes> documents_;
@@ -298,6 +414,74 @@ std::vector<Change> Database::diff(const Digest& from, const Digest& to) const {
   return out;
 }
 
+
+void Database::createIndex(const std::string& collection, const std::string& name, const std::vector<std::string>& fields) {
+  encodeKey(collection);
+  store_.withWriteLock([&](DiskStore::Writer& writer) {
+    WriteBatch batch(store_, writer, readRootFrom(store_));
+    batch.createIndex(collection, name, fields);
+    if (auto head = batch.persist()) writer.publishHead(*head);
+  });
+  notifier_->bump();
+}
+
+void Database::dropIndex(const std::string& collection, const std::string& name) {
+  encodeKey(collection);
+  store_.withWriteLock([&](DiskStore::Writer& writer) {
+    WriteBatch batch(store_, writer, readRootFrom(store_));
+    batch.dropIndex(collection, name);
+    if (auto head = batch.persist()) writer.publishHead(*head);
+  });
+  notifier_->bump();
+}
+
+AttachmentRef Database::putAttachment(const Bytes& bytes, const std::optional<std::string>& type) {
+  AttachmentRef ref;
+  store_.withWriteLock([&](DiskStore::Writer& writer) { ref = writeAttachment(writer, bytes, type); });
+  return ref;
+}
+
+Bytes Database::getAttachment(const Digest& digest) const { return readAttachment(store_, digest); }
+
+void Database::streamAttachment(const Digest& digest, const std::function<void(const Bytes&)>& visit) const {
+  brightchain::v2::streamAttachment(store_, digest, visit);
+}
+
+std::vector<IndexInfo> Snapshot::listIndexes(const std::string& collection) const {
+  auto coll = collectionRoot(collection);
+  if (!coll) return {};
+  std::vector<IndexInfo> out;
+  for (const auto& d : readIndexDefinitions(store_, *coll)) out.push_back({d.name, d.fields});
+  return out;
+}
+
+std::vector<nlohmann::json> Snapshot::findByIndex(const std::string& collection, const std::string& index,
+                                                  const IndexQuery& query) const {
+  auto coll = collectionRoot(collection);
+  if (!coll) throw StorageError("BrightDB collection does not exist: " + collection);
+  std::optional<IndexDefinition> definition;
+  for (auto& d : readIndexDefinitions(store_, *coll)) if (d.name == index) definition = d;
+  if (!definition) throw StorageError("BrightDB index does not exist: " + index);
+  auto range = indexRange(definition->fields.size(), query);
+  ReadBlocks reader(store_);
+  Tree primary(reader, LeafKind::Primary);
+  IndexTree tree(reader);
+  auto limit = query.limit.value_or(SIZE_MAX);
+  std::set<std::string> seen;
+  std::vector<nlohmann::json> documents;
+  tree.range(definition->root, range.lo, range.hi, query.descending, [&](const Bytes& entry) {
+    if (documents.size() >= limit) return false;
+    auto id = decodeIndexId(entry, definition->fields.size());
+    if (!seen.insert(id).second) return true;
+    auto record = primary.get(coll->primary, id);
+    auto doc = record ? document(*record, *coll) : std::nullopt;
+    if (!doc) throw StorageError("BrightDB index " + index + " references a missing document");
+    documents.push_back(std::move(*doc));
+    return true;
+  });
+  return documents;
+}
+
 std::vector<std::string> Database::listCollections() { return snapshot().listCollections(); }
 
 std::optional<nlohmann::json> Database::findById(const std::string& collection, const std::string& id) {
@@ -319,6 +503,8 @@ void Database::writeBatch(const std::vector<WriteOp>& operations) {
         case WriteOp::Type::Insert: batch.insert(op.collection, op.document); break;
         case WriteOp::Type::Replace: batch.replace(op.collection, op.id, op.document); break;
         case WriteOp::Type::Delete: batch.remove(op.collection, op.id); break;
+        case WriteOp::Type::CreateIndex: batch.createIndex(op.collection, op.name, op.fields); break;
+        case WriteOp::Type::DropIndex: batch.dropIndex(op.collection, op.name); break;
       }
     }
     if (auto head = batch.persist()) writer.publishHead(*head);

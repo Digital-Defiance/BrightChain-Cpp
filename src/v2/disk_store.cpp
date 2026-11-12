@@ -149,12 +149,26 @@ Digest DiskStore::installBlock(const Bytes& payload, std::set<std::string>& dirt
   return digest;
 }
 
-void DiskStore::publishHead(const Digest& digest, std::set<std::string>& dirty) const {
-  readBlock(digest);
-  dirty.insert(blockDir(path_, digest));
+void DiskStore::syncDirty(std::set<std::string>& dirty) const {
   for (const auto& d : dirty) syncDirectory(d);
   syncDirectory(path_ + "/blocks");
   dirty.clear();
+}
+
+bool DiskStore::hasBlock(const Digest& digest) const {
+  assertDigest(digest);
+  struct stat st;
+  if (::lstat((blockDir(path_, digest) + "/" + digest).c_str(), &st) != 0) {
+    if (errno == ENOENT) return false;
+    fail("Cannot stat block", digest);
+  }
+  return S_ISREG(st.st_mode);
+}
+
+void DiskStore::publishHead(const Digest& digest, std::set<std::string>& dirty) const {
+  readBlock(digest);
+  dirty.insert(blockDir(path_, digest));
+  syncDirty(dirty);
 
   auto temporary = temporaryName(path_);
   try {
@@ -174,6 +188,7 @@ void DiskStore::publishHead(const Digest& digest, std::set<std::string>& dirty) 
 }
 
 Digest DiskStore::Writer::writeBlock(const Bytes& payload) { return store_.installBlock(payload, dirty_); }
+void DiskStore::Writer::syncBlocks() { store_.syncDirty(dirty_); }
 void DiskStore::Writer::publishHead(const Digest& digest) { store_.publishHead(digest, dirty_); }
 
 void DiskStore::withWriteLock(const std::function<void(Writer&)>& body) {
