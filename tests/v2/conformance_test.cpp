@@ -659,3 +659,157 @@ TEST(V2Attachments, RoundTripAndReferenceValidation) {
   EXPECT_THROW(db.insertOne("docs", {{"_id", "x"}, {"_files", json::array()}}), AttachmentError);
   EXPECT_FALSE(db.findById("docs", "x").has_value());
 }
+
+// ---- fork and merge ----------------------------------------------------------
+
+namespace {
+
+std::string dumpAll(Database& db) {
+  json out = json::object();
+  auto names = db.listCollections();
+  std::sort(names.begin(), names.end());
+  for (const auto& name : names) out[name] = sortedById(json(db.findAll(name)));
+  return out.dump();
+}
+
+}  // namespace
+
+TEST(V2Merge, ForksAndMergesBothWaysToTheSameRoot) {
+  TempDir tmp;
+  auto a = Database::open((tmp.path / "a").string());
+  a.insertMany("docs", {{{"_id", "one"}, {"v", 1}}, {{"_id", "two"}, {"v", 2}}, {{"_id", "three"}, {"v", 3}}});
+  auto b = a.fork((tmp.path / "b").string());
+  EXPECT_EQ(b.root(), a.root());
+  EXPECT_NE(DiskStore::open((tmp.path / "b").string()).writerId(), DiskStore::open((tmp.path / "a").string()).writerId());
+
+  a.insertOne("docs", {{"_id", "from-a"}, {"v", 10}});
+  a.replaceById("docs", "one", {{"_id", "one"}, {"v", 100}});
+  b.insertOne("docs", {{"_id", "from-b"}, {"v", 20}});
+  b.deleteById("docs", "two");
+  b.insertOne("other", {{"_id", "x"}});
+
+  auto ab = a.merge(b);
+  EXPECT_NE(ab.root, ab.previous);
+  auto ba = b.merge(a);
+  EXPECT_EQ(ba.root, ab.root);
+  EXPECT_EQ(a.root(), b.root());
+  EXPECT_EQ(dumpAll(a),
+            R"({"docs":[{"_id":"from-a","v":10},{"_id":"from-b","v":20},{"_id":"one","v":100},{"_id":"three","v":3}],"other":[{"_id":"x"}]})");
+  EXPECT_EQ(a.merge(b).root, ab.root);  // merging again changes nothing
+}
+
+TEST(V2Merge, GreaterVersionAndDeletionsAndGenerations) {
+  TempDir tmp;
+  auto a = Database::open((tmp.path / "a").string());
+  a.insertMany("docs", {{{"_id", "one"}, {"v", 1}}, {{"_id", "two"}, {"v", 2}}, {{"_id", "three"}, {"v", 3}}});
+  auto b = a.fork((tmp.path / "b").string());
+  a.replaceById("docs", "one", {{"_id", "one"}, {"v", 11}});
+  b.replaceById("docs", "one", {{"_id", "one"}, {"v", 22}});
+  b.replaceById("docs", "one", {{"_id", "one"}, {"v", 23}});
+  a.merge(b);
+  b.merge(a);
+  EXPECT_EQ(a.root(), b.root());
+  EXPECT_EQ((*a.findById("docs", "one"))["v"], 23);
+
+  auto c = a.fork((tmp.path / "c").string());
+  c.deleteById("docs", "three");
+  a.replaceById("docs", "two", {{"_id", "two"}, {"v", 200}});
+  a.merge(c);
+  EXPECT_FALSE(a.findById("docs", "three").has_value());
+  c.merge(a);
+  EXPECT_EQ(c.root(), a.root());
+
+  using T = WriteOp::Type;
+  auto d = a.fork((tmp.path / "d").string());
+  a.writeBatch({{T::DropCollection, "docs", "", {}}, {T::Insert, "docs", "", {{"_id", "fresh"}, {"v", 1}}}});
+  d.insertOne("docs", {{"_id", "stale"}, {"v", 9}});
+  a.merge(d);
+  d.merge(a);
+  EXPECT_EQ(a.root(), d.root());
+  EXPECT_EQ(dumpAll(a), R"({"docs":[{"_id":"fresh","v":1}]})");
+}
+
+TEST(V2Merge, ThreeReplicasConvergeInAnyOrder) {
+  TempDir tmp;
+  auto origin = Database::open((tmp.path / "o").string());
+  origin.insertOne("docs", {{"_id", "seed"}});
+  std::vector<Database> replicas{origin, origin.fork((tmp.path / "r1").string()), origin.fork((tmp.path / "r2").string())};
+  for (std::size_t i = 0; i < replicas.size(); i++) {
+    std::vector<json> docs;
+    for (int k = 0; k < 5; k++) docs.push_back({{"_id", "r" + std::to_string(i) + "-" + std::to_string(k)}, {"v", int(i)}});
+    replicas[i].insertMany("docs", docs);
+    replicas[i].insertOne("c" + std::to_string(i), {{"_id", "only"}});
+  }
+  auto& x = replicas[0]; auto& y = replicas[1]; auto& z = replicas[2];
+  x.merge(y); x.merge(z);
+  z.merge(y); z.merge(x);
+  y.merge(z); y.merge(x);
+  EXPECT_EQ(x.root(), y.root());
+  EXPECT_EQ(y.root(), z.root());
+  EXPECT_EQ(x.findAll("docs").size(), 16u);
+}
+
+TEST(V2Merge, MergesIndexesAndAttachmentsAndRefusesBadInput) {
+  TempDir tmp;
+  auto a = Database::open((tmp.path / "a").string());
+  a.createIndex("people", "by_city", {"city"});
+  a.insertMany("people", {{{"_id", "p1"}, {"city", "Oslo"}, {"age", 30}}, {{"_id", "p2"}, {"city", "Bergen"}, {"age", 40}}});
+  auto b = a.fork((tmp.path / "b").string());
+  a.insertOne("people", {{"_id", "p3"}, {"city", "Oslo"}, {"age", 20}});
+  a.replaceById("people", "p2", {{"_id", "p2"}, {"city", "Oslo"}, {"age", 41}});
+  b.insertOne("people", {{"_id", "p4"}, {"city", "Bergen"}, {"age", 25}});
+  b.createIndex("people", "by_age", {"age"});
+  b.deleteById("people", "p1");
+  auto ref = b.putAttachment(Bytes(1'500'000, 3), "application/octet-stream");
+  b.insertOne("files", {{"_id", "f"}, {"_files", {{"x", {{"digest", ref.digest}, {"size", ref.size}, {"type", *ref.type}}}}}});
+
+  a.merge(b);
+  b.merge(a);
+  EXPECT_EQ(a.root(), b.root());
+  for (auto* db : {&a, &b}) {
+    EXPECT_EQ(idsOf(db->findByIndex("people", "by_city", IndexQuery::fromJson({{"equals", {"Oslo"}}}))),
+              (std::vector<std::string>{"p2", "p3"}));
+    EXPECT_EQ(idsOf(db->findByIndex("people", "by_city", IndexQuery::fromJson({{"equals", {"Bergen"}}}))),
+              (std::vector<std::string>{"p4"}));
+    EXPECT_EQ(idsOf(db->findByIndex("people", "by_age", IndexQuery::fromJson({{"gte", 25}}))),
+              (std::vector<std::string>{"p4", "p2"}));
+  }
+  EXPECT_EQ(a.getAttachment(ref.digest).size(), 1'500'000u);
+
+  auto other = Database::open((tmp.path / "other").string());
+  other.insertOne("docs", {{"_id", "x"}});
+  EXPECT_THROW(a.merge(other), MergeError);
+}
+
+TEST(V2Merge, ReproducesTheTypeScriptMergedRoot) {
+  auto manifest = loadJson(kFixtures / "stores" / "merged.json");
+  TempDir tmp;
+  auto path = [&](const char* n) { return (tmp.path / n).string(); };
+  DatabaseRoot empty{manifest.at("databaseId"), 0, std::nullopt};
+  DiskStore::create(path("a"), encodeMetadata(empty), manifest.at("writerA"));
+  auto a = Database::open(path("a"));
+  using T = WriteOp::Type;
+  a.writeBatch({{T::Insert, "people", "", {{"_id", "p1"}, {"city", "Oslo"}, {"age", 30}}},
+                {T::Insert, "people", "", {{"_id", "p2"}, {"city", "Bergen"}, {"age", 40}}},
+                {T::CreateIndex, "people", "", {}, "by_city", {"city"}}});
+  // The second replica is a copy with the fixture's writer ID.
+  DiskStore::create(path("b"), encodeMetadata(empty), manifest.at("writerB"));
+  {
+    auto store = DiskStore::open(path("b"));
+    auto head = a.root();
+    store.withWriteLock([&](DiskStore::Writer& w) {
+      copyDatabase(store, w, DiskStore::open(path("a")), head);
+      w.publishHead(head);
+    });
+  }
+  auto b = Database::open(path("b"));
+  a.insertOne("people", {{"_id", "p3"}, {"city", "Oslo"}, {"age", 20}});
+  a.replaceById("people", "p2", {{"_id", "p2"}, {"city", "Oslo"}, {"age", 41}});
+  b.insertOne("people", {{"_id", "p4"}, {"city", "Bergen"}, {"age", 25}});
+  b.createIndex("people", "by_age", {"age"});
+  b.deleteById("people", "p1");
+  EXPECT_EQ(a.root(), manifest.at("rootA").get<std::string>());
+  EXPECT_EQ(b.root(), manifest.at("rootB").get<std::string>());
+  EXPECT_EQ(a.merge(b).root, manifest.at("merged").get<std::string>());
+  EXPECT_EQ(b.merge(a).root, manifest.at("merged").get<std::string>());
+}

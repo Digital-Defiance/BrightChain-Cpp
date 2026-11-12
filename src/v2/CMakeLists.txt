@@ -7,6 +7,7 @@ add_library(brightdb_v2
     index_key.cpp
     index_tree.cpp
     attachments.cpp
+    merge.cpp
     disk_store.cpp
     database.cpp
 )

@@ -17,6 +17,7 @@
 #include "brightchain/v2/codec.hpp"
 #include "brightchain/v2/disk_store.hpp"
 #include "brightchain/v2/index_key.hpp"
+#include "brightchain/v2/merge.hpp"
 #include "brightchain/v2/tree.hpp"
 
 namespace brightchain::v2 {
@@ -125,6 +126,16 @@ class Snapshot {
 class Database {
  public:
   static Database open(const std::string& path);
+
+  /// Copy this database into a new directory as an independent replica: same database ID, new
+  /// writer ID, so both sides can write and later merge each other.
+  Database fork(const std::string& path) const;
+  /// Merge another replica of this database into this one (the other's current root, or `root`).
+  /// Per document the greater version wins, a deletion beats an equal version, and for equal live
+  /// versions the greater digest wins; a newer collection generation replaces an older one. Any
+  /// order or direction of merges gives the same root. Nothing is published if a needed block is
+  /// missing or fails its digest.
+  MergeResult merge(const Database& other, const std::optional<Digest>& root = std::nullopt);
 
   /// The digest of the current database state. Equal roots mean equal data.
   Digest root() const;

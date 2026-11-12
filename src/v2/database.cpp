@@ -363,6 +363,33 @@ std::vector<nlohmann::json> Snapshot::findAll(const std::string& collection) con
   return out;
 }
 
+Database Database::fork(const std::string& path) const {
+  auto head = store_.readHead();
+  auto root = readRootFrom(store_);
+  auto store = DiskStore::create(path, encodeMetadata(DatabaseRoot{root.databaseId, 0, std::nullopt}));
+  store.withWriteLock([&](DiskStore::Writer& writer) {
+    copyDatabase(store, writer, store_, head);
+    writer.publishHead(head);
+  });
+  return Database(std::move(store));
+}
+
+MergeResult Database::merge(const Database& other, const std::optional<Digest>& root) {
+  auto remoteHead = root ? *root : other.store_.readHead();
+  MergeResult result;
+  store_.withWriteLock([&](DiskStore::Writer& writer) {
+    result.previous = store_.readHead();
+    result.root = result.previous;
+    if (auto merged = mergeReplica(store_, writer, other.store_, remoteHead)) {
+      writer.publishHead(merged->first);
+      result.root = merged->first;
+      result.adopted = merged->second;
+    }
+  });
+  notifier_->bump();
+  return result;
+}
+
 Digest Database::root() const { return store_.readHead(); }
 
 Snapshot Database::snapshot() const { return at(store_.readHead()); }

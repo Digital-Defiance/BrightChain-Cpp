@@ -58,6 +58,15 @@ int main(int argc, char** argv) {
       // getfile <manifest digest>: prints the size and the SHA3-512 of the content
       auto bytes = db.getAttachment(argv[3]);
       std::cout << json{{"size", bytes.size()}, {"sha3", digestPayload(bytes)}}.dump() << std::endl;
+    } else if (command == "fork" && argc == 4) {
+      // fork <target directory>: an independent replica with a new writer ID
+      db.fork(argv[3]);
+      std::cout << R"({"ok":true})" << std::endl;
+    } else if (command == "merge" && argc >= 4) {
+      // merge <other directory> [root]: merge the other replica into this one
+      auto other = Database::open(argv[3]);
+      auto result = db.merge(other, argc >= 5 ? std::optional<std::string>(argv[4]) : std::nullopt);
+      std::cout << json{{"previous", result.previous}, {"root", result.root}, {"adopted", result.adopted}}.dump() << std::endl;
     } else if (command == "root" && argc == 3) {
       std::cout << json{{"root", db.root()}}.dump() << std::endl;
     } else if (command == "diff" && argc == 5) {
