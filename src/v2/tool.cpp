@@ -1,5 +1,6 @@
 // Usage: brightdb_v2_tool <write|delete|dump|loop> <directory> [args...]
 // Mirrors brightchain-db/test-support/v2-worker.ts. Prints one JSON line.
+#include <algorithm>
 #include <iostream>
 
 #include "brightchain/v2/database.hpp"
@@ -30,6 +31,17 @@ int main(int argc, char** argv) {
       auto names = db.listCollections();
       for (const auto& name : names) out[name] = db.findAll(name);
       std::cout << out.dump() << std::endl;
+    } else if (command == "root" && argc == 3) {
+      std::cout << json{{"root", db.root()}}.dump() << std::endl;
+    } else if (command == "diff" && argc == 5) {
+      // diff <from> <to>: sorted "collection/id:type" summaries
+      std::vector<std::string> lines;
+      for (const auto& c : db.diff(argv[3], argv[4])) {
+        const char* type = c.type == Change::Type::Added ? "added" : c.type == Change::Type::Modified ? "modified" : "deleted";
+        lines.push_back(c.collection + "/" + c.id + ":" + type);
+      }
+      std::sort(lines.begin(), lines.end());
+      std::cout << json(lines).dump() << std::endl;
     } else if (command == "loop" && argc == 5) {
       std::string collection = argv[3];
       int size = std::stoi(argv[4]);

@@ -170,6 +170,63 @@ std::optional<Digest> Tree::setMany(const std::optional<Digest>& root, const std
   return next ? std::optional<Digest>(next->digest) : std::nullopt;
 }
 
+namespace {
+bool sameRecord(const Record& a, const Record& b) {
+  return compareVersions(a.version, b.version) == 0 && a.target == b.target;
+}
+}  // namespace
+
+void Tree::diff(const std::optional<Digest>& from, const std::optional<Digest>& to,
+                const std::function<void(const RecordChange&)>& visit) {
+  diffPages(from, to, visit);
+}
+
+void Tree::diffPages(const std::optional<Digest>& from, const std::optional<Digest>& to,
+                     const std::function<void(const RecordChange&)>& visit) {
+  if (from == to) return;
+  if (!from || !to) {
+    std::vector<Record> records;
+    collect(from ? *from : *to, records);
+    for (auto& r : records) {
+      if (from) visit({r.key, r, std::nullopt});
+      else visit({r.key, std::nullopt, r});
+    }
+    return;
+  }
+  auto left = readPage(*from);
+  auto right = readPage(*to);
+  const auto* lb = std::get_if<Branch>(&left);
+  const auto* rb = std::get_if<Branch>(&right);
+  if (lb && rb) {
+    for (int nibble = 0; nibble < 16; nibble++) {
+      std::optional<Digest> a, b;
+      for (const auto& c : lb->children) if (c.nibble == nibble) a = c.digest;
+      for (const auto& c : rb->children) if (c.nibble == nibble) b = c.digest;
+      if (a || b) diffPages(a, b, visit);
+    }
+    return;
+  }
+  // One side is a leaf: compare the records under this prefix by key.
+  std::map<std::string, Record> before, after;
+  std::vector<Record> records;
+  collect(*from, records);
+  for (auto& r : records) before.emplace(r.key, r);
+  records.clear();
+  collect(*to, records);
+  for (auto& r : records) after.emplace(r.key, r);
+  std::vector<std::string> keys;
+  for (const auto& [k, _] : before) keys.push_back(k);
+  for (const auto& [k, _] : after) if (!before.count(k)) keys.push_back(k);
+  std::sort(keys.begin(), keys.end(), [](const std::string& a, const std::string& b) { return compareKeys(a, b) < 0; });
+  for (const auto& key : keys) {
+    auto a = before.find(key);
+    auto b = after.find(key);
+    if (a != before.end() && b != after.end() && sameRecord(a->second, b->second)) continue;
+    visit({key, a == before.end() ? std::nullopt : std::optional<Record>(a->second),
+           b == after.end() ? std::nullopt : std::optional<Record>(b->second)});
+  }
+}
+
 void Tree::forEach(const std::optional<Digest>& root, const std::function<void(const Record&)>& visit) {
   if (!root) return;
   auto page = readPage(*root);

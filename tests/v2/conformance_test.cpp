@@ -253,3 +253,77 @@ TEST(V2Store, RejectsMalformedDirectoriesAndMissingBlocks) {
     if (e.is_regular_file() && e.path().filename().string() != head) fs::remove(e.path());
   EXPECT_THROW(db.findById("c", "a"), StorageError);
 }
+
+TEST(V2Diff, RootsSnapshotsAndChanges) {
+  TempDir tmp;
+  auto db = Database::open((tmp.path / "db").string());
+  auto empty = db.root();
+  db.insertMany("users", {{{"_id", "a"}, {"n", 1}}, {{"_id", "b"}, {"n", 2}}, {{"_id", "c"}, {"n", 3}}});
+  auto before = db.root();
+  EXPECT_NE(empty, before);
+
+  using T = WriteOp::Type;
+  db.writeBatch({{T::Replace, "users", "a", {{"_id", "a"}, {"n", 10}}},
+                 {T::Delete, "users", "b", {}},
+                 {T::Insert, "users", "", {{"_id", "d"}, {"n", 4}}},
+                 {T::Insert, "logs", "", {{"_id", "l1"}, {"m", "x"}}}});
+  auto after = db.root();
+
+  auto summarize = [](const std::vector<Change>& changes) {
+    std::vector<std::string> out;
+    for (const auto& c : changes) {
+      const char* t = c.type == Change::Type::Added ? "added" : c.type == Change::Type::Modified ? "modified" : "deleted";
+      out.push_back(c.collection + "/" + c.id + ":" + t);
+    }
+    std::sort(out.begin(), out.end());
+    return out;
+  };
+  EXPECT_EQ(summarize(db.diff(before, after)),
+            (std::vector<std::string>{"logs/l1:added", "users/a:modified", "users/b:deleted", "users/d:added"}));
+  EXPECT_EQ(summarize(db.diff(after, before)),
+            (std::vector<std::string>{"logs/l1:deleted", "users/a:modified", "users/b:added", "users/d:deleted"}));
+  EXPECT_TRUE(db.diff(after, after).empty());
+
+  // Past states stay readable and snapshots stay pinned.
+  auto old = db.at(before);
+  EXPECT_EQ(old.findById("users", "a")->at("n"), 1);
+  EXPECT_TRUE(old.findById("users", "d") == std::nullopt);
+  EXPECT_TRUE(db.at(empty).listCollections().empty());
+  EXPECT_THROW(db.at(std::string(128, 'f')), StorageError);
+
+  for (const auto& c : db.diff(before, after)) {
+    if (c.id == "a") {
+      EXPECT_EQ(c.before->at("n"), 1);
+      EXPECT_EQ(c.after->at("n"), 10);
+    }
+  }
+}
+
+TEST(V2Diff, DropAndRecreateReportsDeletionsThenAdditions) {
+  TempDir tmp;
+  auto db = Database::open((tmp.path / "db").string());
+  db.insertOne("c", {{"_id", "old"}, {"v", 1}});
+  auto before = db.root();
+  using T = WriteOp::Type;
+  db.writeBatch({{T::DropCollection, "c", "", {}}, {T::Insert, "c", "", {{"_id", "new"}, {"v", 2}}}});
+  std::vector<std::string> got;
+  for (const auto& c : db.diff(before, db.root()))
+    got.push_back(c.id + ":" + (c.type == Change::Type::Added ? "added" : "deleted"));
+  std::sort(got.begin(), got.end());
+  EXPECT_EQ(got, (std::vector<std::string>{"new:added", "old:deleted"}));
+}
+
+TEST(V2Diff, DiffOfLargeCollectionReadsOnlyChangedPaths) {
+  TempDir tmp;
+  auto path = (tmp.path / "db").string();
+  auto db = Database::open(path);
+  std::vector<json> docs;
+  for (int i = 0; i < 800; i++) docs.push_back({{"_id", "u" + std::to_string(i)}, {"n", i}});
+  db.insertMany("users", docs);
+  auto before = db.root();
+  db.replaceById("users", "u433", {{"_id", "u433"}, {"n", -1}});
+  auto changes = db.diff(before, db.root());
+  ASSERT_EQ(changes.size(), 1u);
+  EXPECT_EQ(changes[0].id, "u433");
+  EXPECT_EQ(changes[0].type, Change::Type::Modified);
+}

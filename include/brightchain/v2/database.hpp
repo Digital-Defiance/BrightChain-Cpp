@@ -32,9 +32,52 @@ struct ReplaceResult {
   int modified = 0;
 };
 
+/// A visible change to one document between two database roots.
+struct Change {
+  enum class Type { Added, Modified, Deleted };
+  std::string collection;
+  std::string id;
+  Type type;
+  std::optional<nlohmann::json> before;
+  std::optional<nlohmann::json> after;
+};
+
+/// A read-only view pinned to one database root.
+class Snapshot {
+ public:
+  Snapshot(DiskStore store, Digest root, DatabaseRoot block)
+      : store_(std::move(store)), root_(std::move(root)), block_(std::move(block)) {}
+  /// The digest identifying this database state.
+  const Digest& root() const { return root_; }
+  std::vector<std::string> listCollections() const;
+  std::optional<nlohmann::json> findById(const std::string& collection, const std::string& id) const;
+  /// Every live document in a collection (trie order).
+  std::vector<nlohmann::json> findAll(const std::string& collection) const;
+  /// The live collection root, or nullopt when absent in this state.
+  std::optional<CollectionRoot> collectionRoot(const std::string& collection) const;
+  std::optional<nlohmann::json> document(const Record& record, const CollectionRoot& collection) const;
+
+ private:
+  friend class Database;
+  DiskStore store_;
+  Digest root_;
+  DatabaseRoot block_;
+};
+
 class Database {
  public:
   static Database open(const std::string& path);
+
+  /// The digest of the current database state. Equal roots mean equal data.
+  Digest root() const;
+  Snapshot snapshot() const;
+  /// A read-only view at an earlier root; throws when the root is unknown, not a
+  /// database root, from another database, or its blocks are missing.
+  Snapshot at(const Digest& root) const;
+  /// Document-level changes from one root to another, skipping equal subtrees. A
+  /// dropped or recreated collection reports its old documents as deleted and
+  /// its new documents as added.
+  std::vector<Change> diff(const Digest& from, const Digest& to) const;
 
   std::vector<std::string> listCollections();
   std::optional<nlohmann::json> findById(const std::string& collection, const std::string& id);

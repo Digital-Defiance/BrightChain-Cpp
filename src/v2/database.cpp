@@ -2,6 +2,9 @@
 
 #include <openssl/rand.h>
 
+#include <algorithm>
+#include <set>
+
 namespace brightchain::v2 {
 
 namespace {
@@ -196,44 +199,113 @@ Database Database::open(const std::string& path) {
 
 DatabaseRoot Database::readRoot() const { return readRootFrom(store_); }
 
-std::vector<std::string> Database::listCollections() {
-  auto root = readRoot();
+// ---- snapshots ---------------------------------------------------------------
+
+std::vector<std::string> Snapshot::listCollections() const {
   ReadBlocks reader(store_);
   Tree catalog(reader, LeafKind::Catalog);
   std::vector<std::string> names;
-  catalog.forEach(root.catalog, [&](const Record& r) {
-    if (r.version.counter > root.clock) throw StorageError("BrightDB catalog version exceeds the database clock");
+  catalog.forEach(block_.catalog, [&](const Record& r) {
+    if (r.version.counter > block_.clock) throw StorageError("BrightDB catalog version exceeds the database clock");
     if (r.target) names.push_back(r.key);
   });
   return names;
 }
 
-std::optional<nlohmann::json> Database::findById(const std::string& collection, const std::string& id) {
-  encodeKey(id);
-  auto root = readRoot();
+std::optional<CollectionRoot> Snapshot::collectionRoot(const std::string& collection) const {
   ReadBlocks reader(store_);
-  Tree catalog(reader, LeafKind::Catalog), primary(reader, LeafKind::Primary);
-  auto coll = readCollection(store_, catalog, root, collection);
+  Tree catalog(reader, LeafKind::Catalog);
+  return readCollection(store_, catalog, block_, collection);
+}
+
+std::optional<nlohmann::json> Snapshot::document(const Record& record, const CollectionRoot& collection) const {
+  checkPrimaryVersion(record, collection.generation, block_.clock);
+  if (!record.target) return std::nullopt;
+  return decodeDocument(store_.readBlock(*record.target), record.key, record.target);
+}
+
+std::optional<nlohmann::json> Snapshot::findById(const std::string& collection, const std::string& id) const {
+  encodeKey(id);
+  auto coll = collectionRoot(collection);
   if (!coll) return std::nullopt;
+  ReadBlocks reader(store_);
+  Tree primary(reader, LeafKind::Primary);
   auto record = primary.get(coll->primary, id);
   if (!record) return std::nullopt;
-  checkPrimaryVersion(*record, coll->generation, root.clock);
-  if (!record->target) return std::nullopt;
-  return decodeDocument(store_.readBlock(*record->target), record->key, record->target);
+  return document(*record, *coll);
+}
+
+std::vector<nlohmann::json> Snapshot::findAll(const std::string& collection) const {
+  std::vector<nlohmann::json> out;
+  auto coll = collectionRoot(collection);
+  if (!coll) return out;
+  ReadBlocks reader(store_);
+  Tree primary(reader, LeafKind::Primary);
+  primary.forEach(coll->primary, [&](const Record& r) {
+    if (auto doc = document(r, *coll)) out.push_back(std::move(*doc));
+  });
+  return out;
+}
+
+Digest Database::root() const { return store_.readHead(); }
+
+Snapshot Database::snapshot() const { return at(store_.readHead()); }
+
+Snapshot Database::at(const Digest& root) const {
+  auto meta = decodeMetadata(store_.readBlock(root), root);
+  const auto* block = std::get_if<DatabaseRoot>(&meta);
+  if (!block) throw StorageError("Digest does not identify a BrightDB database root");
+  if (block->databaseId != readRootFrom(store_).databaseId)
+    throw StorageError("Root belongs to a different BrightDB database");
+  return Snapshot(store_, root, *block);
+}
+
+std::vector<Change> Database::diff(const Digest& from, const Digest& to) const {
+  auto before = at(from);
+  auto after = at(to);
+  std::set<std::string> names;
+  for (auto& n : before.listCollections()) names.insert(n);
+  for (auto& n : after.listCollections()) names.insert(n);
+  std::vector<std::string> ordered(names.begin(), names.end());
+  std::sort(ordered.begin(), ordered.end(), [](const std::string& a, const std::string& b) { return compareKeys(a, b) < 0; });
+
+  ReadBlocks reader(store_);
+  Tree primary(reader, LeafKind::Primary);
+  std::vector<Change> out;
+  for (const auto& name : ordered) {
+    auto a = before.collectionRoot(name);
+    auto b = after.collectionRoot(name);
+    auto emit = [&](const RecordChange& change) {
+      std::optional<nlohmann::json> oldDoc, newDoc;
+      if (change.before && change.before->target && a) oldDoc = before.document(*change.before, *a);
+      if (change.after && change.after->target && b) newDoc = after.document(*change.after, *b);
+      Change::Type type;
+      if (!oldDoc) {
+        if (!newDoc) return;
+        type = Change::Type::Added;
+      } else {
+        type = newDoc ? Change::Type::Modified : Change::Type::Deleted;
+      }
+      out.push_back({name, change.key, type, oldDoc, newDoc});
+    };
+    if (a && b && compareVersions(a->generation, b->generation) == 0) {
+      primary.diff(a->primary, b->primary, emit);
+    } else {
+      if (a) primary.forEach(a->primary, [&](const Record& r) { emit({r.key, r, std::nullopt}); });
+      if (b) primary.forEach(b->primary, [&](const Record& r) { emit({r.key, std::nullopt, r}); });
+    }
+  }
+  return out;
+}
+
+std::vector<std::string> Database::listCollections() { return snapshot().listCollections(); }
+
+std::optional<nlohmann::json> Database::findById(const std::string& collection, const std::string& id) {
+  return snapshot().findById(collection, id);
 }
 
 std::vector<nlohmann::json> Database::findAll(const std::string& collection) {
-  auto root = readRoot();
-  ReadBlocks reader(store_);
-  Tree catalog(reader, LeafKind::Catalog), primary(reader, LeafKind::Primary);
-  std::vector<nlohmann::json> out;
-  auto coll = readCollection(store_, catalog, root, collection);
-  if (!coll) return out;
-  primary.forEach(coll->primary, [&](const Record& r) {
-    checkPrimaryVersion(r, coll->generation, root.clock);
-    if (r.target) out.push_back(decodeDocument(store_.readBlock(*r.target), r.key, r.target));
-  });
-  return out;
+  return snapshot().findAll(collection);
 }
 
 void Database::writeBatch(const std::vector<WriteOp>& operations) {
