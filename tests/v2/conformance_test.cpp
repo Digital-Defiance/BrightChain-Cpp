@@ -1201,6 +1201,57 @@ TEST(V2Encryption, KeyRingKnownAnswersAndRotation) {
   EXPECT_THROW(Database::openWithKeyRing(path, oldRing), StorageError);
 }
 
+TEST(V2Encryption, ResealMovesEveryReachableBlockToTheCurrentKey) {
+  KeyRing ring;
+  ring.nameSecret = Bytes(32, 21);
+  ring.dataKeys = {{1, Bytes(32, 22)}, {2, Bytes(32, 23)}};
+  ring.currentVersion = 2;
+  KeyRing oldRing{ring.nameSecret, {{1, ring.dataKeys.at(1)}}, 1};
+  KeyRing newOnlyRing{ring.nameSecret, {{2, ring.dataKeys.at(2)}}, 2};
+
+  TempDir tmp;
+  auto path = (tmp.path / "db").string();
+  {
+    auto db = Database::openWithKeyRing(path, oldRing);
+    db.createIndex("c", "by_v", {"v"});
+    std::vector<json> docs;
+    for (int i = 0; i < 40; i++) docs.push_back({{"_id", "d" + std::to_string(i)}, {"v", i}});
+    db.insertMany("c", docs);
+  }
+  auto db = Database::openWithKeyRing(path, ring);
+  db.insertOne("c", {{"_id", "late"}, {"v", 99}});
+  GcOptions gc;
+  gc.graceMs = 0;
+  db.collectGarbage(gc);  // superseded states would keep the old key
+
+  auto oldVersionFiles = [&] {
+    std::size_t n = 0;
+    for (const auto& file : filesUnder(fs::path(path) / "blocks")) {
+      std::ifstream in(file, std::ios::binary);
+      if (in.get() == 1) n++;
+    }
+    return n;
+  };
+  auto files = filesUnder(fs::path(path) / "blocks");
+  EXPECT_GT(oldVersionFiles(), 0u);
+
+  ResealOptions dryRun;
+  dryRun.dryRun = true;
+  auto dry = db.resealBlocks(dryRun);
+  EXPECT_GT(dry.resealed, 0u);
+  EXPECT_GT(oldVersionFiles(), 0u);  // a dry run changes nothing
+
+  auto done = db.resealBlocks();
+  EXPECT_EQ(done.resealed, dry.resealed);
+  EXPECT_EQ(oldVersionFiles(), 0u);
+  EXPECT_EQ(filesUnder(fs::path(path) / "blocks"), files);  // no file added or renamed
+  EXPECT_EQ(db.resealBlocks().resealed, 0u);                // safe to repeat
+
+  // The old key is no longer needed.
+  auto newOnly = Database::openWithKeyRing(path, newOnlyRing);
+  EXPECT_EQ(newOnly.findAll("c").size(), 41u);
+}
+
 // ---- garbage collection ------------------------------------------------------
 
 namespace {

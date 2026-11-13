@@ -42,6 +42,11 @@ class AesCipher {
   Bytes seal(const Digest& logicalDigest, const Bytes& plaintext, const Bytes& nonce = {}) const;
   /// Throws DecryptionError on a wrong key, a changed block or a block moved to another name.
   Bytes open(const Digest& logicalDigest, const Bytes& sealed) const;
+  /// The data key version new blocks and the head are sealed with.
+  int currentVersion() const { return currentVersion_; }
+  /// Re-encrypt a stored block under the current data key. Returns an empty Bytes when it already
+  /// uses the current key (a sealed block is never empty). Same digest, same file name.
+  Bytes reseal(const Digest& logicalDigest, const Bytes& sealed) const;
   Bytes sealHead(const Digest& digest, const Bytes& nonce = {}) const;
   Digest openHead(const Bytes& sealed) const;
   static constexpr std::size_t sealedHeadBytes() { return kSealOverhead + 64; }

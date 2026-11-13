@@ -229,6 +229,41 @@ void DiskStore::deleteBlockFile(const std::string& name) const {
   if (::unlink((path_ + "/blocks/" + name.substr(0, 2) + "/" + name).c_str()) != 0) fail("Cannot delete block", name);
 }
 
+bool DiskStore::needsReseal(const Digest& digest) const {
+  assertDigest(digest);
+  if (!cipher_) return false;
+  auto [directory, file] = blockLocation(digest);
+  auto data = readBounded(directory + "/" + file, kMaxDocumentBytes + kSealOverhead);
+  return !data.empty() && static_cast<unsigned char>(data[0]) != cipher_->currentVersion();
+}
+
+bool DiskStore::headNeedsReseal() const {
+  if (!cipher_) return false;
+  auto data = readBounded(path_ + "/HEAD", AesCipher::sealedHeadBytes());
+  return !data.empty() && static_cast<unsigned char>(data[0]) != cipher_->currentVersion();
+}
+
+bool DiskStore::resealBlock(const Digest& digest) const {
+  assertDigest(digest);
+  if (!cipher_) throw StorageError("Re-sealing needs an encrypted store");
+  auto [directory, file] = blockLocation(digest);
+  auto path = directory + "/" + file;
+  auto data = readBounded(path, kMaxDocumentBytes + kSealOverhead);
+  auto next = cipher_->reseal(digest, Bytes(data.begin(), data.end()));
+  if (next.empty()) return false;
+  auto temporary = temporaryName(directory);
+  try {
+    writeSynced(temporary, next.data(), next.size());
+    if (::rename(temporary.c_str(), path.c_str()) != 0) fail("Cannot replace block", path);
+    syncDirectory(directory);
+  } catch (...) {
+    ::unlink(temporary.c_str());
+    throw;
+  }
+  readBlock(digest);  // verify the new file decrypts to the right digest
+  return true;
+}
+
 void DiskStore::publishHead(const Digest& digest, std::set<std::string>& dirty) const {
   readBlock(digest);
   dirty.insert(blockLocation(digest).first);

@@ -49,6 +49,16 @@ struct GcResult {
   std::uint64_t bytesFreed = 0;
 };
 
+struct ResealOptions {
+  std::vector<Digest> keepRoots;  // older roots to re-seal too, besides the current one
+  bool dryRun = false;
+};
+
+struct ResealResult {
+  std::size_t resealed = 0, alreadyCurrent = 0;
+  bool headResealed = false;
+};
+
 struct IndexInfo {
   std::string name;
   std::vector<std::string> fields;
@@ -179,6 +189,12 @@ class Database {
   /// reach, including documents, indexes and attachments). Runs under the write lock. Unreachable
   /// blocks younger than `graceMs` are kept so a stored file has time to be referenced by a document.
   GcResult collectGarbage(const GcOptions& options = {});
+
+  /// After a key rotation, rewrite every block reachable from the current root (and `keepRoots`)
+  /// under the current data key so the old key can be removed from the ring. File names do not
+  /// change, each file is replaced atomically, HEAD is re-sealed last, and a run is safe to repeat
+  /// or resume. Unreachable blocks are not touched: run collectGarbage first. Needs encryption.
+  ResealResult resealBlocks(const ResealOptions& options = {});
 
   /// The digest of the current database state. Equal roots mean equal data.
   Digest root() const;

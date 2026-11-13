@@ -78,6 +78,13 @@ class DiskStore : public BlockSource {
   std::vector<BlockFile> listBlockFiles() const;
   /// Remove one block file by its on-disk name. The caller must hold the write lock.
   void deleteBlockFile(const std::string& name) const;
+  /// Whether a block is sealed with an older data key than the cipher's current one.
+  bool needsReseal(const Digest& digest) const;
+  /// Whether HEAD is sealed with an older data key than the cipher's current one.
+  bool headNeedsReseal() const;
+  /// Re-encrypt one block under the current data key, replacing its file atomically (temporary
+  /// file, fsync, rename). Returns whether it was rewritten. Needs the write lock.
+  bool resealBlock(const Digest& digest) const;
   /// Run `body` holding the exclusive write lock.
   void withWriteLock(const std::function<void(Writer&)>& body);
 

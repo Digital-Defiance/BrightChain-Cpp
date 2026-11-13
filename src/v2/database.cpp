@@ -465,6 +465,25 @@ GcResult Database::collectGarbage(const GcOptions& options) {
   return result;
 }
 
+ResealResult Database::resealBlocks(const ResealOptions& options) {
+  if (!store_.cipher()) throw StorageError("Re-sealing needs an encrypted store");
+  ResealResult result;
+  store_.withWriteLock([&](DiskStore::Writer& writer) {
+    auto head = store_.readHead();
+    std::vector<Digest> roots{head};
+    roots.insert(roots.end(), options.keepRoots.begin(), options.keepRoots.end());
+    for (const auto& digest : collectReachable(store_, roots)) {
+      bool changed = options.dryRun ? store_.needsReseal(digest) : store_.resealBlock(digest);
+      (changed ? result.resealed : result.alreadyCurrent)++;
+    }
+    if (!options.dryRun && store_.headNeedsReseal()) {
+      writer.publishHead(head);
+      result.headResealed = true;
+    }
+  });
+  return result;
+}
+
 Digest Database::root() const { return store_.readHead(); }
 
 Snapshot Database::snapshot() const { return at(store_.readHead()); }

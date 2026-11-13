@@ -115,6 +115,11 @@ Bytes AesCipher::open(const Digest& logicalDigest, const Bytes& sealed) const {
   return decrypt(concat(kBlockAad, fromHex(logicalDigest)), sealed);
 }
 
+Bytes AesCipher::reseal(const Digest& logicalDigest, const Bytes& sealed) const {
+  if (!sealed.empty() && sealed[0] == currentVersion_) return {};
+  return seal(logicalDigest, open(logicalDigest, sealed));
+}
+
 Bytes AesCipher::sealHead(const Digest& digest, const Bytes& nonce) const {
   return encrypt(Bytes(kHeadAad.begin(), kHeadAad.end()), fromHex(digest), nonce);
 }
