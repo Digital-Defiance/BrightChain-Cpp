@@ -95,6 +95,7 @@ struct BlockServer::Impl {
   tcp::acceptor acceptor{ioc};
   std::shared_ptr<const BlockSource> source;
   std::optional<std::string> token;
+  std::optional<std::string> corsOrigin;
   std::thread thread;
   bool stopped = false;
 
@@ -113,11 +114,18 @@ struct BlockServer::Impl {
     auto reply = [&](http::status status, const std::string& body, const char* type = "text/plain") {
       http::response<http::string_body> response{status, request.version()};
       response.set(http::field::content_type, type);
+      if (corsOrigin) {
+        response.set("Access-Control-Allow-Origin", *corsOrigin);
+        response.set("Access-Control-Allow-Headers", "authorization");
+        response.set("Access-Control-Allow-Methods", "GET, OPTIONS");
+        response.set(http::field::vary, "origin");
+      }
       response.keep_alive(false);
       response.body() = body;
       response.prepare_payload();
       http::write(socket, response);
     };
+    if (request.method() == http::verb::options && corsOrigin) return reply(http::status::no_content, "");
     if (request.method() != http::verb::get) return reply(http::status::method_not_allowed, "");
     if (token && std::string(request[http::field::authorization]) != "Bearer " + *token)
       return reply(http::status::unauthorized, "");
@@ -140,12 +148,14 @@ struct BlockServer::Impl {
 };
 
 std::unique_ptr<BlockServer> BlockServer::start(std::shared_ptr<const BlockSource> source, unsigned short port,
-                                                const std::string& host, std::optional<std::string> token) {
+                                                const std::string& host, std::optional<std::string> token,
+                                                std::optional<std::string> corsOrigin) {
   std::unique_ptr<BlockServer> server(new BlockServer());
   server->impl_ = std::make_unique<Impl>();
   auto& impl = *server->impl_;
   impl.source = std::move(source);
   impl.token = std::move(token);
+  impl.corsOrigin = std::move(corsOrigin);
   tcp::endpoint endpoint(net::ip::make_address(host), port);
   impl.acceptor.open(endpoint.protocol());
   impl.acceptor.set_option(net::socket_base::reuse_address(true));

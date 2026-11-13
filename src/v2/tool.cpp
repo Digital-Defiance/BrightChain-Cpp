@@ -82,7 +82,8 @@ int main(int argc, char** argv) {
       // serve [port] [token]: serve this database read-only until the process is stopped
       unsigned short port = argc >= 4 ? static_cast<unsigned short>(std::stoi(argv[3])) : 0;
       auto server = BlockServer::start(db.blockSource(), port, "127.0.0.1",
-                                       argc >= 5 ? std::optional<std::string>(argv[4]) : std::nullopt);
+                                       argc >= 5 ? std::optional<std::string>(argv[4]) : std::nullopt,
+                                       argc >= 6 ? std::optional<std::string>(argv[5]) : std::nullopt);
       std::cout << json{{"url", server->url()}}.dump() << std::endl;
       std::string line;
       while (std::getline(std::cin, line)) {}  // run until stdin closes

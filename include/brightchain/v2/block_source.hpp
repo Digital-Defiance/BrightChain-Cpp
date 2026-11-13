@@ -48,7 +48,8 @@ class BlockServer {
  public:
   static std::unique_ptr<BlockServer> start(std::shared_ptr<const BlockSource> source, unsigned short port = 0,
                                             const std::string& host = "127.0.0.1",
-                                            std::optional<std::string> token = std::nullopt);
+                                            std::optional<std::string> token = std::nullopt,
+                                            std::optional<std::string> corsOrigin = std::nullopt);
   ~BlockServer();
   BlockServer(const BlockServer&) = delete;
   BlockServer& operator=(const BlockServer&) = delete;
