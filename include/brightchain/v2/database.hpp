@@ -160,7 +160,7 @@ class Database {
   /// Create a new directory holding a copy of the database a block source serves (for example an
   /// HttpBlockSource), with a new writer ID. Afterwards the two are replicas that can merge.
   static Database cloneFrom(const std::string& path, const BlockSource& source,
-                            const std::optional<Bytes>& encryptionKey = std::nullopt);
+                            const std::optional<Bytes>& encryptionKey = std::nullopt, bool packed = false);
   /// Whether blocks are encrypted at rest by the profile in spec section 10.
   bool encryptsAtRest() const { return store_.cipher() != nullptr; }
 
@@ -195,6 +195,13 @@ class Database {
   /// change, each file is replaced atomically, HEAD is re-sealed last, and a run is safe to repeat
   /// or resume. Unreachable blocks are not touched: run collectGarbage first. Needs encryption.
   ResealResult resealBlocks(const ResealOptions& options = {});
+
+  /// Packed extension (spec section 5.1): new blocks go into pack files, one fsync per commit.
+  /// Enable it only where every reader supports packs. Existing loose blocks keep working.
+  void enablePacks();
+  bool packed() const;
+  /// Merge every pack file into one. Needs a packed store.
+  DiskStore::CompactCounts compactPacks();
 
   /// The digest of the current database state. Equal roots mean equal data.
   Digest root() const;

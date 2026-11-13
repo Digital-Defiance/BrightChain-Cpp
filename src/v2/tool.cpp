@@ -26,6 +26,8 @@ int main(int argc, char** argv) {
       return 0;
     }
     auto db = Database::open(argv[2], key);
+    // BRIGHTDB_PACKED=1 turns on the packed extension (spec section 5.1) for this directory.
+    if (const char* packed = std::getenv("BRIGHTDB_PACKED"); packed && std::string(packed) == "1") db.enablePacks();
     if (command == "write" && argc == 6) {
       // write <collection> <tag> <count>: one atomic batch
       std::string collection = argv[3], tag = argv[4];
@@ -108,6 +110,9 @@ int main(int argc, char** argv) {
       options.graceMs = argc >= 4 ? std::stoll(argv[3]) : 3'600'000;
       auto r = db.collectGarbage(options);
       std::cout << json{{"keptReachable", r.keptReachable}, {"keptRecent", r.keptRecent}, {"removed", r.removed}}.dump() << std::endl;
+    } else if (command == "compact" && argc == 3) {
+      auto r = db.compactPacks();
+      std::cout << json{{"before", r.before}, {"after", r.after}}.dump() << std::endl;
     } else if (command == "root" && argc == 3) {
       std::cout << json{{"root", db.root()}}.dump() << std::endl;
     } else if (command == "diff" && argc == 5) {

@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <vector>
@@ -78,19 +79,44 @@ class DiskStore : public BlockSource {
   std::vector<BlockFile> listBlockFiles() const;
   /// Remove one block file by its on-disk name. The caller must hold the write lock.
   void deleteBlockFile(const std::string& name) const;
-  /// Whether a block is sealed with an older data key than the cipher's current one.
-  bool needsReseal(const Digest& digest) const;
   /// Whether HEAD is sealed with an older data key than the cipher's current one.
   bool headNeedsReseal() const;
-  /// Re-encrypt one block under the current data key, replacing its file atomically (temporary
-  /// file, fsync, rename). Returns whether it was rewritten. Needs the write lock.
-  bool resealBlock(const Digest& digest) const;
+  /// Re-encrypt the given blocks under the cipher's current data key, wherever they are stored:
+  /// loose files are replaced one by one (temporary file, fsync, rename) and each affected pack is
+  /// rewritten once. Names do not change. `dryRun` only counts. Needs the write lock.
+  struct ResealCounts {
+    std::size_t resealed = 0, alreadyCurrent = 0;
+  };
+  ResealCounts resealBlocks(const std::vector<Digest>& digests, bool dryRun = false) const;
+
+  /// Packed extension (spec section 5.1): new blocks go into pack files, one fsync per commit
+  /// instead of one per block. Enabling adds a PACKED marker; existing loose blocks keep working.
+  /// Software without pack support cannot find packed blocks, so enable it only where every reader
+  /// supports it.
+  bool packed() const;
+  void enablePacks() const;
+  /// Merge every pack into one. Needs the write lock.
+  struct CompactCounts {
+    std::size_t before = 0, after = 0;
+  };
+  CompactCounts compactPacks() const;
+  /// Remove blocks by on-disk name, loose or packed (packs that lose some blocks are rewritten).
+  /// Needs the write lock.
+  void deleteBlockFiles(const std::vector<std::string>& names) const;
   /// Run `body` holding the exclusive write lock.
   void withWriteLock(const std::function<void(Writer&)>& body);
 
  private:
-  DiskStore(std::string path, std::string writerId, Cipher cipher = nullptr)
-      : path_(std::move(path)), writerId_(std::move(writerId)), cipher_(std::move(cipher)) {}
+  struct Packs;
+  DiskStore(std::string path, std::string writerId, Cipher cipher = nullptr);
+  std::optional<Bytes> readStored(const std::string& name, const std::string& directory) const;
+  bool refreshPacksLocked() const;
+  std::string writePackLocked(const std::vector<std::pair<std::string, Bytes>>& entries, std::optional<std::int64_t> mtimeMs) const;
+  /// `change` returns 0 to keep an entry, 1 to drop it, 2 when it replaced the bytes.
+  void rewritePackLocked(const std::string& pack, const std::function<int(const std::string&, Bytes&)>& change) const;
+  void flushPending() const;
+  void replaceLoose(const Digest& digest, const std::string& directory, const std::string& file, const std::string& sealed) const;
+  std::size_t maxStoredBytes() const;
   /// Directory and file name a logical digest is stored under.
   std::pair<std::string, std::string> blockLocation(const Digest& digest) const;
   Digest installBlock(const Bytes& payload, std::set<std::string>& dirty) const;
@@ -100,6 +126,7 @@ class DiskStore : public BlockSource {
   std::string path_;
   std::string writerId_;
   Cipher cipher_;
+  std::shared_ptr<Packs> packs_;
 };
 
 }  // namespace brightchain::v2

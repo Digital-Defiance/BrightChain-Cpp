@@ -394,13 +394,14 @@ std::vector<nlohmann::json> Snapshot::findAll(const std::string& collection) con
   return out;
 }
 
-Database Database::cloneFrom(const std::string& path, const BlockSource& source, const std::optional<Bytes>& encryptionKey) {
+Database Database::cloneFrom(const std::string& path, const BlockSource& source, const std::optional<Bytes>& encryptionKey, bool packed) {
   auto head = source.readHead();
   auto meta = decodeMetadata(source.readBlock(head), head);
   const auto* root = std::get_if<DatabaseRoot>(&meta);
   if (!root) throw StorageError("The source head does not reference a database root");
   DiskStore::Cipher cipher = encryptionKey ? std::make_shared<const AesCipher>(*encryptionKey) : nullptr;
   auto store = DiskStore::create(path, encodeMetadata(DatabaseRoot{root->databaseId, 0, std::nullopt}), "", cipher);
+  if (packed) store.enablePacks();
   store.withWriteLock([&](DiskStore::Writer& writer) {
     copyDatabase(store, writer, source, head);
     writer.publishHead(head);
@@ -412,6 +413,7 @@ Database Database::fork(const std::string& path) const {
   auto head = store_.readHead();
   auto root = readRootFrom(store_);
   auto store = DiskStore::create(path, encodeMetadata(DatabaseRoot{root.databaseId, 0, std::nullopt}), "", store_.cipher());
+  if (store_.packed()) store.enablePacks();
   store.withWriteLock([&](DiskStore::Writer& writer) {
     copyDatabase(store, writer, store_, head);
     writer.publishHead(head);
@@ -450,6 +452,7 @@ GcResult Database::collectGarbage(const GcOptions& options) {
     std::set<std::string> keep;
     for (const auto& d : reachable) keep.insert(store_.fileNameOf(d));
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    std::vector<std::string> doomed;
     for (const auto& file : store_.listBlockFiles()) {
       if (keep.count(file.name)) {
         result.keptReachable++;
@@ -458,9 +461,10 @@ GcResult Database::collectGarbage(const GcOptions& options) {
       } else {
         result.removed++;
         result.bytesFreed += file.bytes;
-        if (!options.dryRun) store_.deleteBlockFile(file.name);
+        doomed.push_back(file.name);
       }
     }
+    if (!options.dryRun) store_.deleteBlockFiles(doomed);
   });
   return result;
 }
@@ -472,16 +476,25 @@ ResealResult Database::resealBlocks(const ResealOptions& options) {
     auto head = store_.readHead();
     std::vector<Digest> roots{head};
     roots.insert(roots.end(), options.keepRoots.begin(), options.keepRoots.end());
-    for (const auto& digest : collectReachable(store_, roots)) {
-      bool changed = options.dryRun ? store_.needsReseal(digest) : store_.resealBlock(digest);
-      (changed ? result.resealed : result.alreadyCurrent)++;
-    }
+    auto reachable = collectReachable(store_, roots);
+    auto counts = store_.resealBlocks(std::vector<Digest>(reachable.begin(), reachable.end()), options.dryRun);
+    result.resealed = counts.resealed;
+    result.alreadyCurrent = counts.alreadyCurrent;
     if (!options.dryRun && store_.headNeedsReseal()) {
       writer.publishHead(head);
       result.headResealed = true;
     }
   });
   return result;
+}
+
+bool Database::packed() const { return store_.packed(); }
+void Database::enablePacks() { store_.enablePacks(); }
+DiskStore::CompactCounts Database::compactPacks() {
+  if (!store_.packed()) throw StorageError("Compaction needs a packed store");
+  DiskStore::CompactCounts counts;
+  store_.withWriteLock([&](DiskStore::Writer&) { counts = store_.compactPacks(); });
+  return counts;
 }
 
 Digest Database::root() const { return store_.readHead(); }

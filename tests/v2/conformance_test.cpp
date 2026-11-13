@@ -1252,6 +1252,166 @@ TEST(V2Encryption, ResealMovesEveryReachableBlockToTheCurrentKey) {
   EXPECT_EQ(newOnly.findAll("c").size(), 41u);
 }
 
+// ---- packed extension ------------------------------------------------------------
+
+namespace {
+
+std::vector<json> numberedDocs(int n, const std::string& tag = "a") {
+  std::vector<json> docs;
+  for (int i = 0; i < n; i++) docs.push_back({{"_id", tag + std::to_string(i)}, {"n", i}});
+  return docs;
+}
+
+std::size_t looseCount(const std::string& path) { return filesUnder(fs::path(path) / "blocks").size(); }
+
+std::vector<fs::path> packFiles(const std::string& path) {
+  std::vector<fs::path> out;
+  if (!fs::is_directory(fs::path(path) / "packs")) return out;
+  for (const auto& e : fs::directory_iterator(fs::path(path) / "packs"))
+    if (e.path().extension() == ".pack") out.push_back(e.path());
+  return out;
+}
+
+std::uint64_t packBytes(const std::string& path) {
+  std::uint64_t total = 0;
+  for (const auto& p : packFiles(path)) total += fs::file_size(p);
+  return total;
+}
+
+}  // namespace
+
+TEST(V2Packed, WritesCommitsAsPacksAndAnotherConnectionSeesThem) {
+  TempDir tmp;
+  auto path = (tmp.path / "db").string();
+  auto db = Database::open(path);
+  db.enablePacks();
+  auto looseBefore = looseCount(path);
+  db.createIndex("c", "by_n", {"n"});
+  db.insertMany("c", numberedDocs(500));
+  EXPECT_EQ(looseCount(path), looseBefore);  // nothing new is loose
+  EXPECT_GE(packFiles(path).size(), 2u);
+
+  auto other = Database::open(path);
+  EXPECT_TRUE(other.packed());
+  EXPECT_EQ(other.findAll("c").size(), 500u);
+  db.insertOne("c", {{"_id", "late"}, {"n", -1}});
+  EXPECT_EQ((*other.findById("c", "late"))["n"], -1);
+  EXPECT_EQ(Database::open(path).findAll("c").size(), 501u);
+}
+
+TEST(V2Packed, TurnsOnForALooseDatabaseWithoutLosingAnything) {
+  TempDir tmp;
+  auto path = (tmp.path / "db").string();
+  {
+    auto loose = Database::open(path);
+    loose.insertMany("c", numberedDocs(50));
+  }
+  auto looseBefore = looseCount(path);
+  auto db = Database::open(path);
+  db.enablePacks();
+  db.insertMany("c", numberedDocs(50, "b"));
+  EXPECT_EQ(looseCount(path), looseBefore);
+  EXPECT_EQ(db.findAll("c").size(), 100u);
+}
+
+TEST(V2Packed, CollectsGarbageInsidePacksAndCompacts) {
+  TempDir tmp;
+  auto path = (tmp.path / "db").string();
+  auto db = Database::open(path);
+  db.enablePacks();
+  db.insertMany("c", numberedDocs(200));
+  for (int round = 0; round < 5; round++)
+    for (int i = 0; i < 10; i++)
+      db.replaceById("c", "a" + std::to_string(i), {{"_id", "a" + std::to_string(i)}, {"n", 1000 * (round + 1) + i}});
+  db.deleteById("c", "a199");
+  auto before = packBytes(path);
+
+  GcOptions options;
+  options.graceMs = 0;
+  options.dryRun = true;
+  auto dry = db.collectGarbage(options);
+  EXPECT_GT(dry.removed, 20u);
+  EXPECT_EQ(packBytes(path), before);
+  options.dryRun = false;
+  auto real = db.collectGarbage(options);
+  EXPECT_EQ(real.removed, dry.removed);
+  EXPECT_LT(packBytes(path), before);
+  EXPECT_EQ(db.findAll("c").size(), 199u);
+  EXPECT_EQ((*db.findById("c", "a3"))["n"], 5003);
+  EXPECT_EQ(db.collectGarbage(options).removed, 0u);
+
+  auto root = db.root();
+  ASSERT_GT(packFiles(path).size(), 1u);
+  auto compacted = db.compactPacks();
+  EXPECT_EQ(compacted.after, 1u);
+  EXPECT_EQ(packFiles(path).size(), 1u);
+  EXPECT_EQ(db.root(), root);
+  EXPECT_EQ(Database::open(path).findAll("c").size(), 199u);
+}
+
+TEST(V2Packed, ResealsBlocksInsidePacks) {
+  KeyRing ring;
+  ring.nameSecret = Bytes(32, 21);
+  ring.dataKeys = {{1, Bytes(32, 22)}, {2, Bytes(32, 23)}};
+  ring.currentVersion = 2;
+  KeyRing oldRing{ring.nameSecret, {{1, ring.dataKeys.at(1)}}, 1};
+  KeyRing newOnlyRing{ring.nameSecret, {{2, ring.dataKeys.at(2)}}, 2};
+  TempDir tmp;
+  auto path = (tmp.path / "db").string();
+  {
+    auto db = Database::openWithKeyRing(path, oldRing);
+    db.enablePacks();
+    db.insertMany("c", numberedDocs(60));
+  }
+  auto db = Database::openWithKeyRing(path, ring);
+  db.insertOne("c", {{"_id", "late"}, {"n", 99}});
+  GcOptions gc;
+  gc.graceMs = 0;
+  db.collectGarbage(gc);
+  ResealOptions dryRun;
+  dryRun.dryRun = true;
+  auto dry = db.resealBlocks(dryRun);
+  EXPECT_GT(dry.resealed, 0u);
+  auto done = db.resealBlocks();
+  EXPECT_EQ(done.resealed, dry.resealed);
+  EXPECT_EQ(db.resealBlocks().resealed, 0u);
+  EXPECT_EQ(Database::openWithKeyRing(path, newOnlyRing).findAll("c").size(), 61u);
+}
+
+TEST(V2Packed, FailsLoudlyOnADamagedPackAndSweepsTemporaryFiles) {
+  TempDir tmp;
+  auto path = (tmp.path / "db").string();
+  {
+    auto db = Database::open(path);
+    db.enablePacks();
+    db.insertMany("c", numberedDocs(20));
+  }
+  { std::ofstream(fs::path(path) / "packs" / ".brightdb-deadbeef.tmp") << "partial"; }
+  auto fine = Database::open(path);
+  EXPECT_EQ(fine.findAll("c").size(), 20u);
+  GcOptions gc;
+  gc.graceMs = 0;
+  EXPECT_GE(fine.collectGarbage(gc).removed, 1u);
+  EXPECT_FALSE(fs::exists(fs::path(path) / "packs" / ".brightdb-deadbeef.tmp"));
+
+  auto victim = packFiles(path).front();
+  fs::resize_file(victim, 40);
+  EXPECT_THROW(Database::open(path).findAll("c"), StorageError);
+}
+
+TEST(V2Packed, ForkKeepsThePackedSetting) {
+  TempDir tmp;
+  auto db = Database::open((tmp.path / "db").string());
+  db.enablePacks();
+  db.insertMany("c", numberedDocs(30));
+  auto copy = db.fork((tmp.path / "fork").string());
+  EXPECT_TRUE(copy.packed());
+  EXPECT_TRUE(fs::exists(tmp.path / "fork" / "PACKED"));
+  copy.insertOne("c", {{"_id", "x"}, {"n", 1}});
+  db.merge(copy);
+  EXPECT_EQ((*db.findById("c", "x"))["n"], 1);
+}
+
 // ---- garbage collection ------------------------------------------------------
 
 namespace {
